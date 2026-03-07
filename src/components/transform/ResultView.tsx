@@ -2,7 +2,7 @@ import { Download } from 'lucide-react';
 
 interface ResultViewProps {
   data: Record<string, unknown>[];
-  onExport: (format: 'Csv' | 'Excel') => void;
+  onExport: (format: 'Csv' | 'Tsv' | 'Excel') => void;
   onReset: () => void;
 }
 
@@ -30,6 +30,14 @@ export function ResultView({ data, onExport, onReset }: ResultViewProps) {
           >
             <Download className="h-4 w-4" />
             CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => onExport('Tsv')}
+            className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+          >
+            <Download className="h-4 w-4" />
+            TSV
           </button>
           <button
             type="button"

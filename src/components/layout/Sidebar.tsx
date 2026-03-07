@@ -1,4 +1,4 @@
-import { FileText, Plus, Settings } from 'lucide-react';
+import { Download, FileText, Plus, Settings, Upload } from 'lucide-react';
 import type { Template } from '../../lib/types';
 import { TemplateList } from '../template/TemplateList';
 
@@ -8,6 +8,9 @@ interface SidebarProps {
   onNewTemplate: () => void;
   onSelectTemplate: (template: Template) => void;
   onDeleteTemplate: (id: string) => void;
+  onEditTemplate: (template: Template) => void;
+  onExportTemplate: (id: string) => void;
+  onImportTemplate: () => void;
   onSettings: () => void;
 }
 
@@ -17,6 +20,9 @@ export function Sidebar({
   onNewTemplate,
   onSelectTemplate,
   onDeleteTemplate,
+  onEditTemplate,
+  onExportTemplate,
+  onImportTemplate,
   onSettings,
 }: SidebarProps) {
   return (
@@ -27,14 +33,24 @@ export function Sidebar({
       </div>
 
       <div className="flex-1 overflow-auto p-2">
-        <button
-          type="button"
-          onClick={onNewTemplate}
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        >
-          <Plus className="h-4 w-4" />
-          新規テンプレート
-        </button>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={onNewTemplate}
+            className="flex flex-1 items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <Plus className="h-4 w-4" />
+            新規テンプレート
+          </button>
+          <button
+            type="button"
+            onClick={onImportTemplate}
+            title="テンプレートをインポート"
+            className="rounded-md p-2 text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <Upload className="h-4 w-4" />
+          </button>
+        </div>
 
         <div className="mt-2">
           <TemplateList
@@ -42,6 +58,8 @@ export function Sidebar({
             selectedId={selectedTemplateId}
             onSelect={onSelectTemplate}
             onDelete={onDeleteTemplate}
+            onEdit={onEditTemplate}
+            onExport={onExportTemplate}
           />
         </div>
       </div>
