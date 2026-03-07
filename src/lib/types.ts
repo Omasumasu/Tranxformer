@@ -33,3 +33,26 @@ export interface SafetyReport {
   isSafe: boolean;
   violations: string[];
 }
+
+export type AppStep = 'template' | 'import' | 'generate' | 'review' | 'execute' | 'results';
+
+export function createEmptyColumn(): Column {
+  return {
+    name: '',
+    label: '',
+    dataType: 'Text',
+    description: '',
+  };
+}
+
+export function createEmptyTemplate(): Template {
+  const now = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    description: '',
+    columns: [createEmptyColumn()],
+    createdAt: now,
+    updatedAt: now,
+  };
+}
