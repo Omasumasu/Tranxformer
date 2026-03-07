@@ -59,19 +59,7 @@ cd src-tauri && cargo fmt     # Rust format
 3. **無意味なtry-catch禁止**: エラーは型で表現し、適切な境界でのみハンドリング
 4. **明示的なデータフロー**: グローバル状態を避け、依存は引数で渡す
 
-### Rust
-
-- `?` 演算子とearly returnでフラットに
-- `unwrap()` 禁止（テストコード内を除く）
-- エラー型は `thiserror` で定義、`Result<T, E>` で返す
-- `clippy::all` deny + `clippy::pedantic` warn
-
-### TypeScript / React
-
-- Biome の `recommended` ルールに従う
-- `any` 型禁止（`noExplicitAny: error`）
-- コンポーネント内に直接 `invoke()` を書かない → `hooks/` 経由
-- エラーハンドリングは Error Boundary で一括処理
+詳細ルール: `.claude/rules/rust.md`, `.claude/rules/typescript.md`, `.claude/rules/workflow.md`
 
 ### やらないこと
 
@@ -79,6 +67,36 @@ cd src-tauri && cargo fmt     # Rust format
 - 不要な抽象化やヘルパー関数の作成
 - 将来の拡張を見越した過剰設計
 - 意味のないエラーラップ（catchして同じエラーをthrowし直す等）
+
+## カスタムスキル（スラッシュコマンド）
+
+プロジェクト固有のスキルが `.claude/skills/` に定義されている。
+
+| コマンド | 説明 |
+|---------|------|
+| `/review [file]` | コードレビュー（アーキテクチャ整合性、Lint、テスト、セキュリティ） |
+| `/test-all` | 全テスト＋品質チェック並列実行（Biome, knip, Vitest, cargo test, clippy, tsc） |
+| `/arch-check` | Functional Core / Imperative Shell パターンの違反検出 |
+| `/simplify` | 変更コードの簡素化・品質改善（ビルトイン） |
+
+## Hooks（自動実行）
+
+`.claude/settings.json` で以下のフックが設定されている。
+
+| フック | タイミング | 動作 |
+|-------|----------|------|
+| SessionStart | セッション開始時 | システム依存、npm、cargo のセットアップ |
+| PostToolUse (Write/Edit) | ファイル編集後 | Biome / rustfmt による自動フォーマット |
+| PreToolUse (Write/Edit) | ファイル編集前 | `.env` 等の機密ファイルへの書き込みブロック |
+
+## Claude Code Web での開発フロー
+
+1. セッション開始 → SessionStart hook が自動で環境構築
+2. 実装 → PostToolUse で自動フォーマット
+3. `/test-all` → 全テスト並列実行で品質確認
+4. `/review` → 変更のコードレビュー
+5. `/arch-check` → アーキテクチャ違反がないか確認
+6. コミット＆プッシュ
 
 ## ディレクトリ構造
 

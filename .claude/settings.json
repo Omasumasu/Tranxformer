@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=$(jq -r '.tool_input.file_path // .tool_input.filePath // empty' 2>/dev/null); if [ -n \"$filepath\" ]; then case \"$filepath\" in *.ts|*.tsx|*.json|*.css) cd \"$CLAUDE_PROJECT_DIR\" && npx biome format --write \"$filepath\" 2>/dev/null || true ;; *.rs) cd \"$CLAUDE_PROJECT_DIR/src-tauri\" && cargo fmt -- --quiet 2>/dev/null || true ;; esac; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=$(jq -r '.tool_input.file_path // .tool_input.filePath // empty' 2>/dev/null); if [ -n \"$filepath\" ]; then case \"$filepath\" in *.env|*credentials*|*secret*) echo 'BLOCKED: Refusing to modify sensitive file' >&2; exit 2 ;; esac; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
