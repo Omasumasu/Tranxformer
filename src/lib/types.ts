@@ -39,7 +39,7 @@ export interface ModelStatus {
   modelPath: string | null;
 }
 
-export type AppStep = 'template' | 'import' | 'generate' | 'review' | 'execute' | 'results';
+export type AppStep = 'template' | 'import' | 'review' | 'results';
 
 export function createEmptyColumn(): Column {
   return {

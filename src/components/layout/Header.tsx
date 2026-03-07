@@ -3,9 +3,7 @@ import type { AppStep } from '../../lib/types';
 const STEP_LABELS: Record<AppStep, string> = {
   template: 'テンプレート',
   import: 'データ読み込み',
-  generate: 'コード生成',
   review: 'コードレビュー',
-  execute: '実行',
   results: '結果',
 };
 
