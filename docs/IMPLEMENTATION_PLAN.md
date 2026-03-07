@@ -310,6 +310,203 @@ interface TransformResult { headers: string[]; rows: Record<string, string>[]; }
 interface ValidationResult { isValid: boolean; errors: string[]; }
 ```
 
+## 具体的な依存関係
+
+### `src-tauri/Cargo.toml`
+
+```toml
+[package]
+name = "tranxformer"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "tranxformer_lib"
+crate-type = ["lib", "cdylib", "staticlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-dialog = "2"           # ネイティブファイルピッカー
+tauri-plugin-fs = "2"               # フロントエンドからのFS操作
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+
+# LLM
+llama-cpp-2 = "0.1"                 # llama.cpp バインディング
+
+# JavaScript サンドボックス
+rquickjs = { version = "0.6", features = ["bindgen", "classes", "properties"] }
+
+# データI/O
+csv = "1.3"
+calamine = "0.26"                    # Excel読み込み
+rust_xlsxwriter = "0.79"            # Excel書き込み
+
+# ユーティリティ
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2"
+log = "0.4"
+env_logger = "0.11"
+dirs = "6"                           # アプリデータディレクトリ
+regex = "1"                          # 安全性チェッカー用
+```
+
+### `package.json`
+
+```json
+{
+  "name": "tranxformer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "@tauri-apps/plugin-fs": "^2",
+    "react": "^19",
+    "react-dom": "^19",
+    "@tanstack/react-table": "^8",
+    "lucide-react": "^0.400"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5.6",
+    "vite": "^6",
+    "@vitejs/plugin-react": "^4"
+  }
+}
+```
+
+## AppState設計（Rust管理状態）
+
+```rust
+// lib.rs
+pub struct AppState {
+    pub llm_engine: Arc<Mutex<Option<LlmEngine>>>,
+    pub template_store: Arc<TemplateStore>,
+}
+
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .manage(AppState::new())
+        .invoke_handler(tauri::generate_handler![
+            commands::template::list_templates,
+            commands::template::get_template,
+            commands::template::save_template,
+            commands::template::delete_template,
+            commands::template::export_template,
+            commands::template::import_template,
+            commands::data_io::read_file,
+            commands::data_io::write_file,
+            commands::llm::load_model,
+            commands::llm::get_model_status,
+            commands::llm::generate_transform_code,
+            commands::transform::check_code_safety,
+            commands::transform::execute_transform,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running Tranxformer");
+}
+```
+
+LLMエンジンは `Arc<Mutex<Option<LlmEngine>>>` で管理。llama.cppはシングルスレッドのため `Mutex` が必要。
+
+## 共通型定義の詳細（models.rs）
+
+```rust
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Template {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub columns: Vec<ColumnDef>,
+    pub created_at: String,   // ISO 8601
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ColumnDef {
+    pub name: String,         // マシン名（snake_case）
+    pub label: String,        // 表示用ラベル
+    pub data_type: ColumnType,
+    pub description: String,  // LLMへのヒント
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ColumnType { Text, Number, Date, Boolean }
+
+/// 1レコード = カラム名→値のマップ
+pub type Record = serde_json::Map<String, serde_json::Value>;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DataPreview {
+    pub headers: Vec<String>,
+    pub rows: Vec<Record>,
+    pub total_rows: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransformResult {
+    pub code: String,
+    pub output: Vec<Record>,
+    pub row_count: usize,
+    pub errors: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SafetyReport {
+    pub is_safe: bool,
+    pub violations: Vec<String>,
+}
+```
+
+## UIワークフロー（ステップベース）
+
+```
+TEMPLATE → IMPORT → GENERATE → REVIEW → EXECUTE → RESULTS
+```
+
+ルーターではなくステートマシンでステップを管理。各ステップの出力が検証されてから次に進める。
+
+## 推奨LLMモデル（ユーザー提供、アプリには同梱しない）
+
+- **CodeQwen2.5-7B-GGUF** — コード生成に強い、8GB RAMでQ4量子化で動作
+- **Llama-3.1-8B-GGUF** — 汎用、命令追従性が高い
+- **DeepSeek-Coder-6.7B-GGUF** — コード特化で訓練済み
+
+## 設計判断の理由
+
+| 判断 | 理由 |
+|------|------|
+| JSON保存 > SQLite | テンプレートは小さく少数。JSONなら保存ファイル=エクスポートファイルで一石二鳥 |
+| rquickjs > deno_core | QuickJSはV8よりバイナリが小さく、デフォルトでI/O APIなしの天然サンドボックス |
+| llama-cpp-2 > 高レベルクレート | upstream追従が速く、サンプリングパラメータ等を細かく制御可能 |
+| ステップベースUI > 自由ナビ | 正しい順序を強制しUIをシンプルに保つ |
+| 安全チェッカーを実行前に分離 | UX機能としてユーザーに危険性を見せてから実行判断させる。真のセキュリティはQuickJSサンドボックス |
+
+## 既知の課題・リスク
+
+1. **llama-cpp-2ビルド**: CMakeとC++コンパイラが必要。Windows環境ではMSVCが必要になる場合がある
+2. **LLM出力品質**: 小型ローカルモデルは不完全なコードを生成する可能性。対策：構造化プロンプト + ユーザーによるコード編集 + エラー表示でイテレーション
+3. **大ファイルのメモリ**: 100万行ExcelをVec<Record>に読むとメモリを大量消費。MVPでは許容し、将来ストリーミング/チャンク処理に最適化
+4. **QuickJS命令制限**: `Runtime::set_interrupt_handler` で10,000命令ごとにチェック、30秒でタイムアウト
+
 ## 検証方法
 
 1. **プロジェクトビルド**: `cd src-tauri && cargo build` + `npm run build`
