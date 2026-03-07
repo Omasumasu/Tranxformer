@@ -71,12 +71,15 @@ export function ModelSettings({
       </div>
 
       <div className="rounded-lg border p-4 space-y-2">
-        <h3 className="text-sm font-medium">対応モデル（GGUF形式）</h3>
+        <h3 className="text-sm font-medium">推奨モデル（GGUF形式・Q4_K_M量子化推奨）</h3>
         <ul className="text-xs text-muted-foreground space-y-1">
-          <li>CodeQwen2.5-7B — コード生成に強い</li>
-          <li>Llama-3.1-8B — 汎用、命令追従性が高い</li>
-          <li>DeepSeek-Coder-6.7B — コード特化</li>
+          <li>Qwen3.5-9B — コーディング特化、最高性能（VRAM 8GB）</li>
+          <li>Qwen2.5-Coder-7B — コード生成に強い安定モデル（VRAM 6GB）</li>
+          <li>Gemma-3n-8B — 省メモリ設計、軽量環境向け（VRAM 4〜6GB）</li>
         </ul>
+        <p className="text-xs text-muted-foreground mt-2">
+          最低8GB RAM（CPU推論可）、推奨16GB RAM + GPU
+        </p>
       </div>
     </div>
   );
