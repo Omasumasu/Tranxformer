@@ -59,7 +59,7 @@ cd src-tauri && cargo fmt     # Rust format
 3. **無意味なtry-catch禁止**: エラーは型で表現し、適切な境界でのみハンドリング
 4. **明示的なデータフロー**: グローバル状態を避け、依存は引数で渡す
 
-詳細ルール: `.claude/rules/rust.md`, `.claude/rules/typescript.md`, `.claude/rules/workflow.md`
+詳細ルール: `.claude/rules/rust.md`, `.claude/rules/typescript.md`, `.claude/rules/frontend-design.md`, `.claude/rules/workflow.md`
 
 ### やらないこと
 
