@@ -33,3 +33,7 @@ export interface SafetyReport {
   isSafe: boolean;
   violations: string[];
 }
+
+export type ExportFormat = 'Csv' | 'Tsv' | 'Xlsx';
+
+export type WorkflowStep = 'template' | 'import' | 'generate' | 'review' | 'execute' | 'results';

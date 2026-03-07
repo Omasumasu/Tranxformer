@@ -14,6 +14,18 @@ pub enum AppError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
+    #[error("CSV error: {0}")]
+    Csv(String),
+
+    #[error("Excel error: {0}")]
+    Excel(String),
+
+    #[error("Sandbox error: {0}")]
+    Sandbox(String),
+
+    #[error("Unsafe code: {0}")]
+    UnsafeCode(String),
+
     #[error("Internal error: {0}")]
     Internal(String),
 }

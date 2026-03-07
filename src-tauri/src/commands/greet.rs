@@ -1,6 +1,7 @@
 #[tauri::command]
+#[must_use]
 pub fn greet(name: &str) -> String {
-    format!("Hello, {}! Welcome to Tranxformer.", name)
+    format!("Hello, {name}! Welcome to Tranxformer.")
 }
 
 #[cfg(test)]

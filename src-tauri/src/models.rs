@@ -49,3 +49,10 @@ pub struct SafetyReport {
     pub is_safe: bool,
     pub violations: Vec<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ExportFormat {
+    Csv,
+    Tsv,
+    Xlsx,
+}
