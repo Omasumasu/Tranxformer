@@ -11,6 +11,10 @@
 | デスクトップ | Tauri v2 | `tauri` v2.x |
 | フロントエンド | React + TypeScript + Vite | React 19 |
 | UIライブラリ | shadcn/ui + Tailwind CSS | |
+| Linter/Formatter | Biome | v1.x |
+| ユニットテスト (TS) | Vitest | v3.x |
+| E2Eテスト | Playwright | v1.x |
+| ユニットテスト (Rust) | cargo test (標準) | |
 | LLM | llama.cpp組み込み | `llama-cpp-2` クレート |
 | JSサンドボックス | QuickJS | `rquickjs` クレート |
 | Excel読み込み | calamine | v0.33 |
@@ -52,36 +56,172 @@ Tranxformer/
 │   │   └── tauri-commands.ts        # Tauriコマンドラッパー
 │   └── styles/
 │       └── globals.css
+├── e2e/                          # Playwright E2Eテスト
+│   ├── fixtures/                 # テスト用データファイル
+│   ├── template.spec.ts
+│   ├── data-import.spec.ts
+│   └── transform-flow.spec.ts
+├── biome.json                    # Biome設定
+├── vitest.config.ts
+├── playwright.config.ts
 └── src-tauri/                    # Rust バックエンド
     ├── Cargo.toml
     ├── build.rs
     ├── tauri.conf.json
+    ├── rustfmt.toml
     ├── capabilities/
     │   └── default.json
     └── src/
         ├── main.rs               # エントリポイント
         ├── lib.rs                # Tauriアプリ設定
-        ├── commands/             # Tauriコマンド（IPC）
+        ├── models.rs             # 共通型定義
+        ├── error.rs              # エラー型定義（thiserror）
+        ├── commands/             # Imperative Shell — Tauriコマンド（IPC境界）
         │   ├── mod.rs
         │   ├── template.rs       # テンプレートCRUD
         │   ├── data_io.rs        # ファイル読み書き
         │   ├── llm.rs            # LLM推論
         │   └── transform.rs      # コード生成＆実行
-        ├── llm/                  # LLMモジュール
+        ├── core/                 # Functional Core — 純粋関数のみ
         │   ├── mod.rs
-        │   ├── engine.rs         # llama.cpp ラッパー
-        │   └── prompts.rs        # プロンプトテンプレート
-        ├── sandbox/              # JS実行サンドボックス
-        │   ├── mod.rs
-        │   ├── executor.rs       # rquickjs実行エンジン
-        │   └── validator.rs      # コード安全性チェック
-        ├── data/                 # データI/O
-        │   ├── mod.rs
-        │   ├── csv_handler.rs    # CSV/TSV読み書き
-        │   └── excel_handler.rs  # Excel読み書き
-        └── template/             # テンプレート管理
+        │   ├── template.rs       # テンプレートバリデーション
+        │   ├── prompt.rs         # プロンプト構築
+        │   ├── safety.rs         # コード安全性チェック
+        │   └── transform.rs      # データ整形ロジック
+        └── infra/                # Imperative Shell — 外部I/O
             ├── mod.rs
-            └── storage.rs        # JSON保存/読み込み
+            ├── storage.rs        # JSON保存/読み込み
+            ├── csv_io.rs         # CSV/TSV読み書き
+            ├── excel_io.rs       # Excel読み書き
+            └── llm_engine.rs     # llama.cpp ラッパー
+```
+
+## アーキテクチャ: Functional Core / Imperative Shell
+
+副作用を最小化し、テスタビリティを最大化するために **Functional Core / Imperative Shell** パターンを採用する。
+
+### 原則
+
+```
+┌─────────────────────────────────────────────┐
+│           Imperative Shell (薄い)            │
+│  ・Tauriコマンド（IPC境界）                   │
+│  ・ファイルI/O                                │
+│  ・LLMエンジン初期化/呼び出し                  │
+│  ・AppState管理                               │
+│                                              │
+│  ┌─────────────────────────────────────┐     │
+│  │       Functional Core (厚い)         │     │
+│  │  ・テンプレートバリデーション          │     │
+│  │  ・プロンプト構築（純粋関数）          │     │
+│  │  ・コード安全性チェック（純粋関数）     │     │
+│  │  ・データ変換ロジック                  │     │
+│  │  ・CSV/Excelパース結果の整形           │     │
+│  │                                       │     │
+│  │  入力 → 出力 のみ。I/O なし。          │     │
+│  │  すべて #[cfg(test)] でテスト可能       │     │
+│  └─────────────────────────────────────┘     │
+└─────────────────────────────────────────────┘
+```
+
+### Rust側の実践ルール
+
+1. **Functional Core**: `pub fn` は `&self` を取らず、引数と戻り値のみで完結する純粋関数。ファイルI/O・ネットワーク・状態変更を行わない
+2. **Imperative Shell**: Tauriコマンドハンドラとストレージ層のみ。ロジックは Core に委譲し、Shell は I/O の橋渡しだけを行う
+3. **エラー型**: `thiserror` で定義した専用エラー型を使い、`Result<T, E>` で返す。パニックしない
+4. **ネストを避ける**: `?` 演算子とearly returnで処理をフラットに保つ。`match` のネストは関数分割で対処
+5. **無意味な try-catch 禁止**: Rust側は `?` で呼び出し元に伝播。Tauriコマンド境界でのみエラーをシリアライズ
+
+### React側の実践ルール
+
+1. **純粋関数でロジック分離**: UIコンポーネントは表示に徹する。データ変換・バリデーションは `lib/` 配下の純粋関数に切り出す
+2. **Hooks は副作用の境界**: `useTauri.ts` 等のカスタムフックがTauri IPC呼び出しを担当。コンポーネント内に直接 `invoke()` を書かない
+3. **早期リターンパターン**: ネストした条件分岐の代わりにガード句で早期リターン
+4. **不要な try-catch 禁止**: エラーバウンダリで一括処理。個別コンポーネントでの意味のない catch は書かない
+
+### ディレクトリ構造への反映
+
+```
+src-tauri/src/
+├── commands/          # Imperative Shell — Tauriコマンド（I/O境界）
+├── core/              # Functional Core — 純粋関数のみ
+│   ├── template.rs    # テンプレートバリデーション・変換
+│   ├── prompt.rs      # プロンプト構築
+│   ├── safety.rs      # コード安全性チェック
+│   └── transform.rs   # データ整形ロジック
+├── infra/             # Imperative Shell — 外部I/O
+│   ├── storage.rs     # ファイル保存/読み込み
+│   ├── csv_io.rs      # CSV読み書き
+│   ├── excel_io.rs    # Excel読み書き
+│   └── llm_engine.rs  # llama.cpp ラッパー
+└── models.rs          # 共通型定義
+```
+
+## コードスタイル方針
+
+### 全体
+
+- **副作用の最小化**: ビジネスロジックは純粋関数。I/Oは境界層に押し出す
+- **フラットなコード**: ネスト2段以上は関数分割またはearly returnで解消する
+- **無意味な try-catch / unwrap 禁止**: エラーは型で表現し、適切な境界でのみハンドリングする
+- **明示的なデータフロー**: グローバル状態やシングルトンを避ける。依存は引数で渡す
+
+### Biome設定方針
+
+- ESLint + Prettier の代替として **Biome** を単一ツールで採用
+- フォーマット: インデント2スペース、セミコロンあり、ダブルクォート不使用（シングルクォート）
+- Lint: `recommended` ルールセットをベースに、`noExplicitAny` を error に設定
+- import の自動ソート有効化
+- CI / pre-commit で `biome check` を実行
+
+### Rust (rustfmt + clippy)
+
+- `rustfmt`: デフォルト設定（edition 2021）
+- `clippy`: `#![deny(clippy::all)]` + `#![warn(clippy::pedantic)]`
+- `unwrap()` 禁止（テストコード内を除く）
+
+## テスト戦略
+
+### ユニットテスト
+
+**Rust (`cargo test`)**:
+- Functional Core の純粋関数を中心にテスト
+- テンプレートバリデーション、プロンプト構築、安全性チェック、データ整形
+- I/Oを含むテストは `tempfile` クレートで一時ディレクトリを使用
+- `#[cfg(test)]` モジュールをソースファイルと同居
+
+**TypeScript (`vitest`)**:
+- `lib/` 配下の純粋関数をテスト
+- React コンポーネントは `@testing-library/react` でテスト
+- Tauri IPC はモックして UI ロジックのみ検証
+- カバレッジ目標: Core ロジック 80%以上
+
+### E2Eテスト (`Playwright`)
+
+- Tauri ウィンドウを起動し、実際のアプリケーションフローをテスト
+- テスト対象フロー:
+  1. テンプレート作成 → 保存 → 一覧表示
+  2. CSVファイル読み込み → プレビュー表示
+  3. 変換パイプライン全体（LLMモック使用）
+- CI 環境ではヘッドレスモードで実行
+
+### テストの配置
+
+```
+src/
+├── __tests__/                # React コンポーネントテスト
+│   ├── components/
+│   └── lib/                  # 純粋関数テスト
+├── lib/
+│   └── *.test.ts             # or colocated tests
+e2e/
+├── fixtures/                 # テスト用CSV/Excelファイル
+├── template.spec.ts
+├── data-import.spec.ts
+└── transform-flow.spec.ts
+src-tauri/src/
+├── core/
+│   └── *.rs                  # 各ファイル内に #[cfg(test)] mod tests
 ```
 
 ## データフロー
@@ -111,7 +251,12 @@ Tranxformer/
 ### Phase 1: プロジェクトセットアップ
 - Tauri v2 + React + TypeScript + Vite のプロジェクト初期化
 - Tailwind CSS + shadcn/ui セットアップ
+- **Biome セットアップ** (`biome.json` 設定、npm scripts 追加)
+- **Vitest セットアップ** (`vitest.config.ts`、`@testing-library/react` 導入)
+- **Playwright セットアップ** (`playwright.config.ts`、E2E ディレクトリ構成)
+- **rustfmt + clippy 設定** (`rustfmt.toml`、`clippy.toml`)
 - Cargo.toml に依存クレート追加
+- Rust側の `core/` + `infra/` ディレクトリ構造作成
 - 基本的なアプリシェル（サイドバー + メインエリア）
 
 ### Phase 2: テンプレートシステム
@@ -384,7 +529,13 @@ regex = "1"                          # 安全性チェッカー用
     "@types/react-dom": "^19",
     "typescript": "^5.6",
     "vite": "^6",
-    "@vitejs/plugin-react": "^4"
+    "@vitejs/plugin-react": "^4",
+    "@biomejs/biome": "^1",
+    "vitest": "^3",
+    "@testing-library/react": "^16",
+    "@testing-library/jest-dom": "^6",
+    "jsdom": "^25",
+    "@playwright/test": "^1"
   }
 }
 ```
