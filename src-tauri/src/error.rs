@@ -14,6 +14,15 @@ pub enum AppError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
+    #[error("CSV error: {0}")]
+    Csv(#[from] csv::Error),
+
+    #[error("Safety violation: {0}")]
+    SafetyViolation(String),
+
+    #[error("Transform error: {0}")]
+    Transform(String),
+
     #[error("Internal error: {0}")]
     Internal(String),
 }
