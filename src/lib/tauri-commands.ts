@@ -35,6 +35,14 @@ export async function readFileFull(path: string): Promise<[string[], Record<stri
   return invoke('read_file_full', { path });
 }
 
+export async function listSheets(path: string): Promise<string[]> {
+  return invoke('list_sheets', { path });
+}
+
+export async function readFilePreviewSheet(path: string, sheet: string): Promise<DataPreview> {
+  return invoke('read_file_preview_sheet', { path, sheet });
+}
+
 export async function exportResult(
   headers: string[],
   rows: string[][],

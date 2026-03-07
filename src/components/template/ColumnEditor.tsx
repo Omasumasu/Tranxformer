@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Trash2 } from 'lucide-react';
 import type { Column, DataType } from '../../lib/types';
 
 interface ColumnEditorProps {
@@ -6,7 +6,11 @@ interface ColumnEditorProps {
   index: number;
   onChange: (index: number, column: Column) => void;
   onRemove: (index: number) => void;
+  onMoveUp: (index: number) => void;
+  onMoveDown: (index: number) => void;
   canRemove: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
 }
 
 const DATA_TYPES: { value: DataType; label: string }[] = [
@@ -16,7 +20,17 @@ const DATA_TYPES: { value: DataType; label: string }[] = [
   { value: 'Boolean', label: '真偽値' },
 ];
 
-export function ColumnEditor({ column, index, onChange, onRemove, canRemove }: ColumnEditorProps) {
+export function ColumnEditor({
+  column,
+  index,
+  onChange,
+  onRemove,
+  onMoveUp,
+  onMoveDown,
+  canRemove,
+  canMoveUp,
+  canMoveDown,
+}: ColumnEditorProps) {
   const update = (field: keyof Column, value: string) => {
     onChange(index, { ...column, [field]: value });
   };
@@ -56,6 +70,26 @@ export function ColumnEditor({ column, index, onChange, onRemove, canRemove }: C
           onChange={(e) => update('description', e.target.value)}
           className="rounded-md border bg-background px-3 py-1.5 text-sm"
         />
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <button
+          type="button"
+          onClick={() => onMoveUp(index)}
+          disabled={!canMoveUp}
+          className="rounded-md p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+          title="上へ移動"
+        >
+          <ArrowUp className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onMoveDown(index)}
+          disabled={!canMoveDown}
+          className="rounded-md p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+          title="下へ移動"
+        >
+          <ArrowDown className="h-3.5 w-3.5" />
+        </button>
       </div>
       <button
         type="button"

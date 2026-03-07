@@ -1,4 +1,4 @@
-import { Download, FileText, Plus, Settings, Upload } from 'lucide-react';
+import { FileText, Plus, Settings, Upload } from 'lucide-react';
 import type { Template } from '../../lib/types';
 import { TemplateList } from '../template/TemplateList';
 
