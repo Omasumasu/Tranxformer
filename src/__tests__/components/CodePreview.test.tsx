@@ -12,6 +12,7 @@ describe('CodePreview', () => {
     onExecute: vi.fn(),
     onRetryGenerate: vi.fn(),
     loading: false,
+    progress: null,
   };
 
   it('renders code in preview mode', () => {
@@ -80,5 +81,17 @@ describe('CodePreview', () => {
     render(<CodePreview {...defaultProps} />);
     fireEvent.click(screen.getByText('安全性チェック'));
     expect(defaultProps.onCheckSafety).toHaveBeenCalled();
+  });
+
+  it('shows progress bar during generation', () => {
+    render(
+      <CodePreview
+        {...defaultProps}
+        code=""
+        loading={true}
+        progress={{ tokensGenerated: 50, maxTokens: 1024 }}
+      />,
+    );
+    expect(screen.getByText('50 / 1024 トークン')).toBeInTheDocument();
   });
 });

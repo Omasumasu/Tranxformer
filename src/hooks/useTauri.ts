@@ -1,6 +1,13 @@
+import { listen } from '@tauri-apps/api/event';
 import { useCallback, useEffect, useState } from 'react';
 import * as commands from '../lib/tauri-commands';
-import type { DataPreview, ModelStatus, SafetyReport, Template } from '../lib/types';
+import type {
+  DataPreview,
+  GenerateProgress,
+  ModelStatus,
+  SafetyReport,
+  Template,
+} from '../lib/types';
 
 export function useTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -77,6 +84,7 @@ export function useLlm() {
   const [status, setStatus] = useState<ModelStatus>({ loaded: false, modelPath: null });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<GenerateProgress | null>(null);
 
   const refreshStatus = useCallback(async () => {
     try {
@@ -111,6 +119,12 @@ export function useLlm() {
     async (inputHeaders: string[], inputSample: string[][], template: Template) => {
       setLoading(true);
       setError(null);
+      setProgress(null);
+
+      const unlisten = await listen<GenerateProgress>('llm-progress', (event) => {
+        setProgress(event.payload);
+      });
+
       try {
         const code = await commands.generateTransformCode(inputHeaders, inputSample, template);
         return code;
@@ -118,13 +132,15 @@ export function useLlm() {
         setError(String(e));
         return null;
       } finally {
+        unlisten();
         setLoading(false);
+        setProgress(null);
       }
     },
     [],
   );
 
-  return { status, loading, error, loadModel, generateCode, refreshStatus };
+  return { status, loading, error, progress, loadModel, generateCode, refreshStatus };
 }
 
 export function useTransform() {

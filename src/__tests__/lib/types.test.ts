@@ -2,6 +2,7 @@ import type {
   Column,
   DataPreview,
   DataType,
+  GenerateProgress,
   ModelStatus,
   SafetyReport,
   Template,
@@ -90,6 +91,15 @@ describe('types', () => {
     expect(col.label).toBe('');
     expect(col.dataType).toBe('Text');
     expect(col.description).toBe('');
+  });
+
+  it('GenerateProgress interface can be used correctly', () => {
+    const progress: GenerateProgress = {
+      tokensGenerated: 100,
+      maxTokens: 1024,
+    };
+    expect(progress.tokensGenerated).toBe(100);
+    expect(progress.maxTokens).toBe(1024);
   });
 
   it('createEmptyTemplate returns valid template', () => {

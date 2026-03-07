@@ -139,7 +139,8 @@ export function App() {
     const report = await transform.checkSafety(generatedCode);
     if (!report?.isSafe) return;
 
-    const inputData = JSON.stringify(filePreview.preview?.rows ?? []);
+    const [, fullRows] = await commands.readFileFull(filePreview.filePath);
+    const inputData = JSON.stringify(fullRows);
     const result = await transform.execute(generatedCode, inputData);
     if (result) {
       try {
@@ -232,6 +233,7 @@ export function App() {
           onExecute={handleExecute}
           onRetryGenerate={handleRetryGenerate}
           loading={transform.loading || llm.loading}
+          progress={llm.progress}
         />
       );
     }

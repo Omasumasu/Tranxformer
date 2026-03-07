@@ -47,6 +47,19 @@ impl LlmEngine {
 
     /// プロンプトを送信してテキスト生成を行う
     pub fn generate(&self, prompt: &str, max_tokens: u32) -> Result<String, AppError> {
+        self.generate_with_callback(prompt, max_tokens, |_, _| {})
+    }
+
+    /// プロンプトを送信してテキスト生成を行い、トークンごとにコールバックを呼ぶ
+    pub fn generate_with_callback<F>(
+        &self,
+        prompt: &str,
+        max_tokens: u32,
+        on_token: F,
+    ) -> Result<String, AppError>
+    where
+        F: Fn(u32, &str),
+    {
         let ctx_params = LlamaContextParams::default().with_n_ctx(std::num::NonZero::new(2048));
 
         let mut ctx = self
@@ -65,7 +78,6 @@ impl LlmEngine {
 
         let mut batch = LlamaBatch::new(2048, 1);
 
-        // プロンプトトークンをバッチに追加
         let last_idx = tokens.len() - 1;
         for (i, &token) in tokens.iter().enumerate() {
             let is_last = i == last_idx;
@@ -76,11 +88,9 @@ impl LlmEngine {
                 .map_err(|e| AppError::Llm(format!("バッチ追加失敗: {e}")))?;
         }
 
-        // プロンプトを評価
         ctx.decode(&mut batch)
             .map_err(|e| AppError::Llm(format!("デコード失敗: {e}")))?;
 
-        // サンプラー設定
         let mut sampler = LlamaSampler::chain_simple([
             LlamaSampler::temp(0.2),
             LlamaSampler::top_p(0.9, 1),
@@ -91,11 +101,11 @@ impl LlmEngine {
         let mut n_cur = i32::try_from(tokens.len())
             .map_err(|_| AppError::Llm("トークン数がi32の範囲外です".to_string()))?;
         let mut decoder = encoding_rs::UTF_8.new_decoder();
+        let mut token_count: u32 = 0;
 
         for _ in 0..max_tokens {
             let token = sampler.sample(&ctx, batch.n_tokens() - 1);
 
-            // EOSトークンチェック
             if self.model.is_eog_token(token) {
                 break;
             }
@@ -105,8 +115,10 @@ impl LlmEngine {
                 .token_to_piece(token, &mut decoder, true, None)
                 .map_err(|e| AppError::Llm(format!("トークン→文字列変換失敗: {e}")))?;
             output.push_str(&piece);
+            token_count += 1;
 
-            // 次のトークン用にバッチを再セット
+            on_token(token_count, &output);
+
             batch.clear();
             batch
                 .add(token, n_cur, &[0], true)

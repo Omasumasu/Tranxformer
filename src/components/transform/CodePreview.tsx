@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle, Loader2, Play, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
-import type { SafetyReport } from '../../lib/types';
+import type { GenerateProgress, SafetyReport } from '../../lib/types';
 
 interface CodePreviewProps {
   code: string;
@@ -11,6 +11,7 @@ interface CodePreviewProps {
   onExecute: () => void;
   onRetryGenerate: () => void;
   loading: boolean;
+  progress: GenerateProgress | null;
 }
 
 export function CodePreview({
@@ -22,6 +23,7 @@ export function CodePreview({
   onExecute,
   onRetryGenerate,
   loading,
+  progress,
 }: CodePreviewProps) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -76,11 +78,26 @@ export function CodePreview({
       {safetyReport && <SafetyBadge report={safetyReport} />}
 
       {loading && !code ? (
-        <div className="flex h-96 items-center justify-center rounded-lg border bg-muted/30">
+        <div className="flex h-96 flex-col items-center justify-center gap-4 rounded-lg border bg-muted/30">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
             コードを生成中...
           </div>
+          {progress && (
+            <div className="w-64">
+              <div className="mb-1 text-center text-xs text-muted-foreground">
+                {progress.tokensGenerated} / {progress.maxTokens} トークン
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{
+                    width: `${Math.min((progress.tokensGenerated / progress.maxTokens) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       ) : isEditing ? (
         <textarea
