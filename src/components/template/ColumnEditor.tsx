@@ -41,6 +41,7 @@ export function ColumnEditor({
         <input
           type="text"
           placeholder="カラム名 (snake_case)"
+          aria-label={`カラム${index + 1}の名前`}
           value={column.name}
           onChange={(e) => update('name', e.target.value)}
           className="rounded-md border bg-background px-3 py-1.5 text-sm"
@@ -48,12 +49,14 @@ export function ColumnEditor({
         <input
           type="text"
           placeholder="ラベル"
+          aria-label={`カラム${index + 1}のラベル`}
           value={column.label}
           onChange={(e) => update('label', e.target.value)}
           className="rounded-md border bg-background px-3 py-1.5 text-sm"
         />
         <select
           value={column.dataType}
+          aria-label={`カラム${index + 1}のデータ型`}
           onChange={(e) => update('dataType', e.target.value)}
           className="rounded-md border bg-background px-3 py-1.5 text-sm"
         >
@@ -67,6 +70,7 @@ export function ColumnEditor({
           <input
             type="text"
             placeholder="説明（LLMへのヒント）"
+            aria-label={`カラム${index + 1}の説明`}
             value={column.description}
             onChange={(e) => update('description', e.target.value)}
             className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm"
