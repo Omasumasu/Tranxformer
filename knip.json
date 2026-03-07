@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignore": ["src/hooks/useTauri.ts"],
+  "ignoreDependencies": [
+    "@tauri-apps/api",
+    "@tauri-apps/plugin-dialog",
+    "@tauri-apps/plugin-fs",
+    "tailwindcss",
+    "tw-animate-css"
+  ],
+  "ignoreExportsUsedInFile": true
+}
