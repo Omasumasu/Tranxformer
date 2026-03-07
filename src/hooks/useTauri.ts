@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import * as commands from '../lib/tauri-commands';
-import type { DataPreview, SafetyReport, Template } from '../lib/types';
+import type { DataPreview, ModelStatus, SafetyReport, Template } from '../lib/types';
 
 export function useTemplates() {
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -71,6 +71,60 @@ export function useFilePreview() {
   }, []);
 
   return { preview, filePath, loading, error, loadFile, clear };
+}
+
+export function useLlm() {
+  const [status, setStatus] = useState<ModelStatus>({ loaded: false, modelPath: null });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshStatus = useCallback(async () => {
+    try {
+      const s = await commands.getModelStatus();
+      setStatus(s);
+    } catch (e) {
+      setError(String(e));
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshStatus();
+  }, [refreshStatus]);
+
+  const loadModel = useCallback(
+    async (modelPath: string) => {
+      setLoading(true);
+      setError(null);
+      try {
+        await commands.loadModel(modelPath);
+        await refreshStatus();
+      } catch (e) {
+        setError(String(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refreshStatus],
+  );
+
+  const generateCode = useCallback(
+    async (inputHeaders: string[], inputSample: string[][], template: Template) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const code = await commands.generateTransformCode(inputHeaders, inputSample, template);
+        return code;
+      } catch (e) {
+        setError(String(e));
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  return { status, loading, error, loadModel, generateCode, refreshStatus };
 }
 
 export function useTransform() {
