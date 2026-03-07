@@ -34,6 +34,11 @@ export interface SafetyReport {
   violations: string[];
 }
 
+export interface ModelStatus {
+  loaded: boolean;
+  modelPath: string | null;
+}
+
 export type AppStep = 'template' | 'import' | 'generate' | 'review' | 'execute' | 'results';
 
 export function createEmptyColumn(): Column {

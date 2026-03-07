@@ -2,10 +2,12 @@ import type {
   Column,
   DataPreview,
   DataType,
+  ModelStatus,
   SafetyReport,
   Template,
   TransformResult,
 } from '@/lib/types';
+import { createEmptyColumn, createEmptyTemplate } from '@/lib/types';
 import { describe, expect, it } from 'vitest';
 
 describe('types', () => {
@@ -64,5 +66,38 @@ describe('types', () => {
       violations: [],
     };
     expect(report.isSafe).toBe(true);
+  });
+
+  it('ModelStatus interface can be used correctly', () => {
+    const unloaded: ModelStatus = {
+      loaded: false,
+      modelPath: null,
+    };
+    expect(unloaded.loaded).toBe(false);
+    expect(unloaded.modelPath).toBeNull();
+
+    const loaded: ModelStatus = {
+      loaded: true,
+      modelPath: '/path/to/model.gguf',
+    };
+    expect(loaded.loaded).toBe(true);
+    expect(loaded.modelPath).toBe('/path/to/model.gguf');
+  });
+
+  it('createEmptyColumn returns correct defaults', () => {
+    const col = createEmptyColumn();
+    expect(col.name).toBe('');
+    expect(col.label).toBe('');
+    expect(col.dataType).toBe('Text');
+    expect(col.description).toBe('');
+  });
+
+  it('createEmptyTemplate returns valid template', () => {
+    const template = createEmptyTemplate();
+    expect(template.id).toBeTruthy();
+    expect(template.name).toBe('');
+    expect(template.columns).toHaveLength(1);
+    expect(template.createdAt).toBeTruthy();
+    expect(template.updatedAt).toBeTruthy();
   });
 });

@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { DataPreview, SafetyReport, Template } from './types';
+import type { DataPreview, ModelStatus, SafetyReport, Template } from './types';
 
 // テンプレート
 export async function listTemplates(): Promise<Template[]> {
@@ -38,6 +38,23 @@ export async function exportResult(
   format: 'Csv' | 'Tsv' | 'Excel',
 ): Promise<void> {
   return invoke('export_result', { headers, rows, path, format });
+}
+
+// LLM
+export async function loadModel(modelPath: string): Promise<void> {
+  return invoke('load_model', { modelPath });
+}
+
+export async function getModelStatus(): Promise<ModelStatus> {
+  return invoke('get_model_status');
+}
+
+export async function generateTransformCode(
+  inputHeaders: string[],
+  inputSample: string[][],
+  template: Template,
+): Promise<string> {
+  return invoke('generate_transform_code', { inputHeaders, inputSample, template });
 }
 
 // 変換

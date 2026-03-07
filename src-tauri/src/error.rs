@@ -23,6 +23,9 @@ pub enum AppError {
     #[error("Transform error: {0}")]
     Transform(String),
 
+    #[error("LLM error: {0}")]
+    Llm(String),
+
     #[error("Internal error: {0}")]
     Internal(String),
 }

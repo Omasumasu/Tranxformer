@@ -2,12 +2,13 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 import { useState } from 'react';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
+import { ModelSettings } from './components/settings/ModelSettings';
 import { TemplateEditor } from './components/template/TemplateEditor';
 import { CodePreview } from './components/transform/CodePreview';
 import { DataImport } from './components/transform/DataImport';
 import { MappingView } from './components/transform/MappingView';
 import { ResultView } from './components/transform/ResultView';
-import { useFilePreview, useTemplates, useTransform } from './hooks/useTauri';
+import { useFilePreview, useLlm, useTemplates, useTransform } from './hooks/useTauri';
 import * as commands from './lib/tauri-commands';
 import type { AppStep, Template } from './lib/types';
 import { createEmptyTemplate } from './lib/types';
@@ -16,12 +17,14 @@ export function App() {
   const { templates, save: saveTemplate, remove: removeTemplate } = useTemplates();
   const filePreview = useFilePreview();
   const transform = useTransform();
+  const llm = useLlm();
 
   const [step, setStep] = useState<AppStep | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [generatedCode, setGeneratedCode] = useState('');
   const [transformResult, setTransformResult] = useState<Record<string, unknown>[]>([]);
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleNewTemplate = () => {
     setEditingTemplate(createEmptyTemplate());
@@ -62,8 +65,21 @@ export function App() {
     }
   };
 
-  const handleGoToReview = () => {
+  const handleGoToReview = async () => {
     setStep('review');
+
+    if (llm.status.loaded && filePreview.preview && selectedTemplate) {
+      const headers = filePreview.preview.headers;
+      const sampleRows = filePreview.preview.rows
+        .slice(0, 5)
+        .map((row) => headers.map((h) => String(row[h] ?? '')));
+      const code = await llm.generateCode(headers, sampleRows, selectedTemplate);
+      if (code) {
+        setGeneratedCode(code);
+        return;
+      }
+    }
+
     setGeneratedCode(
       '// LLMモデルが未ロードのため、コードを手動で入力してください\n' +
         '// 例:\n' +
@@ -118,6 +134,18 @@ export function App() {
   };
 
   const renderMainContent = () => {
+    if (showSettings) {
+      return (
+        <ModelSettings
+          status={llm.status}
+          loading={llm.loading}
+          error={llm.error}
+          onLoadModel={llm.loadModel}
+          onClose={() => setShowSettings(false)}
+        />
+      );
+    }
+
     if (editingTemplate) {
       return (
         <TemplateEditor
@@ -157,7 +185,7 @@ export function App() {
           onCodeChange={setGeneratedCode}
           onCheckSafety={() => transform.checkSafety(generatedCode)}
           onExecute={handleExecute}
-          loading={transform.loading}
+          loading={transform.loading || llm.loading}
         />
       );
     }
@@ -181,7 +209,7 @@ export function App() {
         onNewTemplate={handleNewTemplate}
         onSelectTemplate={handleSelectTemplate}
         onDeleteTemplate={handleDeleteTemplate}
-        onSettings={() => {}}
+        onSettings={() => setShowSettings(true)}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header currentStep={step} />

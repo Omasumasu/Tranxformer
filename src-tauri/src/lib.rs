@@ -18,6 +18,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .manage(commands::llm::LlmState::new())
         .invoke_handler(tauri::generate_handler![
             commands::greet::greet,
             commands::template::list_templates,
@@ -31,6 +32,9 @@ pub fn run() {
             commands::data_io::export_result,
             commands::transform::check_code_safety,
             commands::transform::execute_transform,
+            commands::llm::load_model,
+            commands::llm::get_model_status,
+            commands::llm::generate_transform_code,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tranxformer");
