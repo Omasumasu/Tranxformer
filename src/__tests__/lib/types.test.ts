@@ -17,6 +17,7 @@ describe('types', () => {
       name: 'test_col',
       label: 'テスト列',
       dataType: 'Text',
+      required: false,
       description: 'テスト用カラム',
     };
     expect(column.name).toBe('test_col');
@@ -90,6 +91,7 @@ describe('types', () => {
     expect(col.name).toBe('');
     expect(col.label).toBe('');
     expect(col.dataType).toBe('Text');
+    expect(col.required).toBe(false);
     expect(col.description).toBe('');
   });
 

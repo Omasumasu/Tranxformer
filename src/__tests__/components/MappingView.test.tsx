@@ -9,8 +9,8 @@ describe('MappingView', () => {
     name: 'テスト',
     description: '',
     columns: [
-      { name: 'full_name', label: '氏名', dataType: 'Text', description: '' },
-      { name: 'email', label: 'メール', dataType: 'Text', description: '' },
+      { name: 'full_name', label: '氏名', dataType: 'Text', required: true, description: '' },
+      { name: 'email', label: 'メール', dataType: 'Text', required: false, description: '' },
     ],
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',

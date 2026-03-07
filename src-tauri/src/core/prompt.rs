@@ -45,14 +45,15 @@ fn format_template_definition(template: &Template) -> String {
 
     for col in &template.columns {
         let type_str = format_column_type(&col.data_type);
+        let required_str = if col.required { ", 必須" } else { "" };
         let desc = if col.description.is_empty() {
             String::new()
         } else {
             format!(" — {}", col.description)
         };
         lines.push(format!(
-            "- {} ({}): {}{}",
-            col.name, type_str, col.label, desc
+            "- {} ({}{}): {}{}",
+            col.name, type_str, required_str, col.label, desc
         ));
     }
     lines.join("\n")
@@ -100,12 +101,14 @@ mod tests {
                     name: "name".to_string(),
                     label: "氏名".to_string(),
                     data_type: ColumnType::Text,
+                    required: true,
                     description: "フルネーム".to_string(),
                 },
                 ColumnDef {
                     name: "age".to_string(),
                     label: "年齢".to_string(),
                     data_type: ColumnType::Number,
+                    required: false,
                     description: String::new(),
                 },
             ],
@@ -142,6 +145,7 @@ mod tests {
             name: "email".to_string(),
             label: "メール".to_string(),
             data_type: ColumnType::Text,
+            required: true,
             description: String::new(),
         }];
         let schema = build_output_schema(&columns);

@@ -4,6 +4,7 @@ export interface Column {
   name: string;
   label: string;
   dataType: DataType;
+  required: boolean;
   description: string;
 }
 
@@ -51,6 +52,7 @@ export function createEmptyColumn(): Column {
     name: '',
     label: '',
     dataType: 'Text',
+    required: false,
     description: '',
   };
 }

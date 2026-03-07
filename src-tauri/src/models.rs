@@ -15,6 +15,7 @@ pub struct ColumnDef {
     pub name: String,
     pub label: String,
     pub data_type: ColumnType,
+    pub required: bool,
     pub description: String,
 }
 

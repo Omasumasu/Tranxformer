@@ -96,6 +96,7 @@ mod tests {
                 name: "col1".to_string(),
                 label: "カラム1".to_string(),
                 data_type: ColumnType::Text,
+                required: false,
                 description: String::new(),
             }],
             created_at: "2024-01-01T00:00:00Z".to_string(),
