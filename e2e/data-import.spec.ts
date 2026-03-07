@@ -1,60 +1,53 @@
-import { expect, test } from '@playwright/test';
+import { createTemplate, expect, test } from './helpers';
+
+async function setupImportScreen(page: import('@playwright/test').Page) {
+  await createTemplate(page, 'インポートテスト');
+  await expect(page.getByRole('heading', { name: 'データ読み込み' })).toBeVisible();
+}
 
 test.describe('データインポート', () => {
-  test('ファイル選択ボタンが表示される', async ({ page }) => {
+  test('テンプレート作成後にインポート画面が表示される', async ({ tauriPage: page }) => {
     await page.goto('/');
+    await setupImportScreen(page);
 
-    // テンプレートを選択してインポート画面へ
+    await expect(page.getByRole('heading', { name: 'データ読み込み' })).toBeVisible();
+    await expect(page.locator('text=ファイルを選択')).toBeVisible();
+  });
+
+  test('ファイル選択ボタンが表示される', async ({ tauriPage: page }) => {
+    await page.goto('/');
+    await setupImportScreen(page);
+
+    // ファイル選択エリアが表示される
+    await expect(page.locator('text=ファイルを選択 (CSV / Excel)')).toBeVisible();
+  });
+
+  test('テンプレート選択でもインポート画面に遷移する', async ({ tauriPage: page }) => {
+    await page.goto('/');
+    await setupImportScreen(page);
+
+    // サイドバーのテンプレートをクリック
     const templateItem = page.locator('[data-testid="template-item"]').first();
-    if (await templateItem.isVisible()) {
-      await templateItem.click();
-      await expect(page.locator('text=ファイルを選択')).toBeVisible();
-    }
+    await templateItem.click();
+    await expect(page.getByRole('heading', { name: 'データ読み込み' })).toBeVisible();
   });
 
-  test('ファイル読み込み後にプレビューテーブルが表示される', async ({ page }) => {
+  test('ファイル未選択時に「次へ」ボタンが表示されない', async ({ tauriPage: page }) => {
     await page.goto('/');
+    await setupImportScreen(page);
 
-    // テンプレートを選択
-    const templateItem = page.locator('[data-testid="template-item"]').first();
-    if (await templateItem.isVisible()) {
-      await templateItem.click();
-
-      // ファイル選択ダイアログは自動化困難なため、
-      // ファイルが既に読み込まれた状態をテスト
-      const previewTable = page.locator('table');
-      if (await previewTable.isVisible()) {
-        // テーブルヘッダーが存在する
-        const headers = page.locator('thead th');
-        expect(await headers.count()).toBeGreaterThan(0);
-
-        // データ行が存在する
-        const rows = page.locator('tbody tr');
-        expect(await rows.count()).toBeGreaterThan(0);
-      }
-    }
+    // プレビューがない場合は「次へ」ボタンは非表示
+    await expect(page.locator('button:has-text("次へ")')).not.toBeVisible();
   });
 
-  test('マッピングビューが表示される', async ({ page }) => {
+  test('ステップインジケーターにデータ読み込みが表示される', async ({ tauriPage: page }) => {
     await page.goto('/');
+    await setupImportScreen(page);
 
-    // テンプレート選択→ファイル読み込み後
-    const mappingView = page.locator('text=マッピング');
-    if (await mappingView.isVisible()) {
-      // 入力カラムと出力カラムが表示される
-      await expect(page.locator('text=入力カラム')).toBeVisible();
-      await expect(page.locator('text=出力カラム')).toBeVisible();
-    }
-  });
-
-  test('次へボタンでレビュー画面に遷移する', async ({ page }) => {
-    await page.goto('/');
-
-    // ファイルが読み込まれた状態で「次へ」をクリック
-    const nextButton = page.locator('text=次へ');
-    if ((await nextButton.isVisible()) && (await nextButton.isEnabled())) {
-      await nextButton.click();
-      await expect(page.locator('text=コードプレビュー')).toBeVisible();
-    }
+    // ヘッダーのステップインジケーターを確認
+    const header = page.locator('header');
+    await expect(header.locator('text=データ読み込み')).toBeVisible();
+    await expect(header.locator('text=コードレビュー')).toBeVisible();
+    await expect(header.locator('text=結果')).toBeVisible();
   });
 });

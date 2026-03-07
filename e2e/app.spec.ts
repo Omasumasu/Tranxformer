@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers';
 
 test.describe('アプリ初期表示', () => {
-  test('アプリが正しく起動する', async ({ page }) => {
+  test('アプリが正しく起動する', async ({ tauriPage: page }) => {
     await page.goto('/');
 
     // サイドバーのタイトルが表示される
@@ -17,13 +17,24 @@ test.describe('アプリ初期表示', () => {
     await expect(page.locator('text=テンプレートを選択するか、新規作成してください')).toBeVisible();
   });
 
-  test('ダッシュボードヘッダーが表示される', async ({ page }) => {
+  test('ダッシュボードヘッダーが表示される', async ({ tauriPage: page }) => {
     await page.goto('/');
     await expect(page.locator('text=ダッシュボード')).toBeVisible();
   });
 
-  test('テンプレートインポートボタンが表示される', async ({ page }) => {
+  test('テンプレートインポートボタンが表示される', async ({ tauriPage: page }) => {
     await page.goto('/');
     await expect(page.locator('[title="テンプレートをインポート"]')).toBeVisible();
+  });
+
+  test('メインエリアに「テンプレートを作成」ボタンが表示される', async ({ tauriPage: page }) => {
+    await page.goto('/');
+    await expect(page.locator('text=テンプレートを作成')).toBeVisible();
+  });
+
+  test('サイドバーとメインコンテンツが表示される', async ({ tauriPage: page }) => {
+    await page.goto('/');
+    await expect(page.locator('aside')).toBeVisible();
+    await expect(page.locator('main')).toBeVisible();
   });
 });
