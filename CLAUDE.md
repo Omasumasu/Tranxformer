@@ -59,19 +59,7 @@ cd src-tauri && cargo fmt     # Rust format
 3. **無意味なtry-catch禁止**: エラーは型で表現し、適切な境界でのみハンドリング
 4. **明示的なデータフロー**: グローバル状態を避け、依存は引数で渡す
 
-### Rust
-
-- `?` 演算子とearly returnでフラットに
-- `unwrap()` 禁止（テストコード内を除く）
-- エラー型は `thiserror` で定義、`Result<T, E>` で返す
-- `clippy::all` deny + `clippy::pedantic` warn
-
-### TypeScript / React
-
-- Biome の `recommended` ルールに従う
-- `any` 型禁止（`noExplicitAny: error`）
-- コンポーネント内に直接 `invoke()` を書かない → `hooks/` 経由
-- エラーハンドリングは Error Boundary で一括処理
+詳細ルール: `.claude/rules/rust.md`, `.claude/rules/typescript.md`, `.claude/rules/workflow.md`
 
 ### やらないこと
 
