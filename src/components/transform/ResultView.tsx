@@ -1,4 +1,7 @@
 import { Download } from 'lucide-react';
+import { useState } from 'react';
+
+const ROWS_PER_PAGE = 100;
 
 interface ResultViewProps {
   data: Record<string, unknown>[];
@@ -7,6 +10,9 @@ interface ResultViewProps {
 }
 
 export function ResultView({ data, onExport, onReset }: ResultViewProps) {
+  const [visibleRows, setVisibleRows] = useState(ROWS_PER_PAGE);
+  const displayData = data.slice(0, visibleRows);
+  const hasMore = visibleRows < data.length;
   if (data.length === 0) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
@@ -69,7 +75,7 @@ export function ResultView({ data, onExport, onReset }: ResultViewProps) {
             </tr>
           </thead>
           <tbody>
-            {data.map((row, i) => (
+            {displayData.map((row, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: result rows have no unique ID
               <tr key={`result-${i}`} className="border-b last:border-0">
                 {headers.map((h) => (
@@ -82,6 +88,18 @@ export function ResultView({ data, onExport, onReset }: ResultViewProps) {
           </tbody>
         </table>
       </div>
+
+      {hasMore && (
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={() => setVisibleRows((v) => v + ROWS_PER_PAGE)}
+            className="rounded-md border px-4 py-2 text-sm hover:bg-muted"
+          >
+            さらに表示（残り {data.length - visibleRows} 行）
+          </button>
+        </div>
+      )}
     </div>
   );
 }

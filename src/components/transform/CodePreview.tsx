@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle, Loader2, Play, RefreshCw } from 'lucide-react';
+import type { KeyboardEvent } from 'react';
 import { useState } from 'react';
 import type { GenerateProgress, SafetyReport } from '../../lib/types';
 
@@ -26,6 +27,20 @@ export function CodePreview({
   progress,
 }: CodePreviewProps) {
   const [isEditing, setIsEditing] = useState(false);
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Tab') return;
+    e.preventDefault();
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newCode = `${code.substring(0, start)}  ${code.substring(end)}`;
+    onCodeChange(newCode);
+    requestAnimationFrame(() => {
+      textarea.selectionStart = start + 2;
+      textarea.selectionEnd = start + 2;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -103,6 +118,7 @@ export function CodePreview({
         <textarea
           value={code}
           onChange={(e) => onCodeChange(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="h-96 w-full rounded-lg border bg-muted/30 p-4 font-mono text-sm"
           spellCheck={false}
         />

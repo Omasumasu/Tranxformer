@@ -1,4 +1,5 @@
-import { open, save } from '@tauri-apps/plugin-dialog';
+import { confirm, open, save } from '@tauri-apps/plugin-dialog';
+import { FileText } from 'lucide-react';
 import { useState } from 'react';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
@@ -55,6 +56,13 @@ export function App() {
   };
 
   const handleDeleteTemplate = async (id: string) => {
+    const ok = await confirm('このテンプレートを削除しますか？この操作は取り消せません。', {
+      title: 'テンプレートの削除',
+      kind: 'warning',
+      okLabel: '削除',
+      cancelLabel: 'キャンセル',
+    });
+    if (!ok) return;
     await removeTemplate(id);
     if (selectedTemplate?.id === id) {
       setSelectedTemplate(null);
@@ -246,8 +254,16 @@ export function App() {
     }
 
     return (
-      <div className="flex h-full items-center justify-center text-muted-foreground">
-        <p>テンプレートを選択するか、新規作成してください</p>
+      <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
+        <FileText className="h-12 w-12 opacity-30" />
+        <p className="text-lg">テンプレートを選択するか、新規作成してください</p>
+        <button
+          type="button"
+          onClick={handleNewTemplate}
+          className="mt-2 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90"
+        >
+          テンプレートを作成
+        </button>
       </div>
     );
   };

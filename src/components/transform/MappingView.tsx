@@ -22,7 +22,7 @@ export function MappingView({ inputHeaders, template }: MappingViewProps) {
           </ul>
         </div>
 
-        <div className="flex items-center pt-8">
+        <div className="flex items-center self-center">
           <ArrowRight className="h-5 w-5 text-muted-foreground" />
         </div>
 
