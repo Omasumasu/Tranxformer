@@ -54,4 +54,57 @@ describe('TemplateEditor', () => {
     expect(screen.getByText('カラム定義')).toBeInTheDocument();
     expect(screen.getByText('カラム追加')).toBeInTheDocument();
   });
+
+  it('renders move up/down buttons for columns', () => {
+    const template = {
+      ...defaultTemplate,
+      columns: [
+        { name: 'col1', label: 'Label1', dataType: 'Text' as const, description: '' },
+        { name: 'col2', label: 'Label2', dataType: 'Text' as const, description: '' },
+      ],
+    };
+    render(<TemplateEditor template={template} onSave={onSave} onCancel={onCancel} />);
+    const upButtons = screen.getAllByTitle('上へ移動');
+    const downButtons = screen.getAllByTitle('下へ移動');
+    expect(upButtons.length).toBe(2);
+    expect(downButtons.length).toBe(2);
+  });
+
+  it('disables move up for first column and move down for last', () => {
+    const template = {
+      ...defaultTemplate,
+      columns: [
+        { name: 'col1', label: 'Label1', dataType: 'Text' as const, description: '' },
+        { name: 'col2', label: 'Label2', dataType: 'Text' as const, description: '' },
+      ],
+    };
+    render(<TemplateEditor template={template} onSave={onSave} onCancel={onCancel} />);
+    const upButtons = screen.getAllByTitle('上へ移動');
+    const downButtons = screen.getAllByTitle('下へ移動');
+    expect(upButtons[0]).toBeDisabled();
+    expect(upButtons[1]).not.toBeDisabled();
+    expect(downButtons[0]).not.toBeDisabled();
+    expect(downButtons[1]).toBeDisabled();
+  });
+
+  it('reorders columns when move down is clicked', () => {
+    const template = {
+      ...defaultTemplate,
+      name: 'Test',
+      columns: [
+        { name: 'first', label: 'First', dataType: 'Text' as const, description: '' },
+        { name: 'second', label: 'Second', dataType: 'Text' as const, description: '' },
+      ],
+    };
+    render(<TemplateEditor template={template} onSave={onSave} onCancel={onCancel} />);
+
+    const firstDownButton = screen.getAllByTitle('下へ移動')[0];
+    if (!firstDownButton) throw new Error('down button not found');
+    fireEvent.click(firstDownButton);
+
+    // After moving first column down, the inputs should have swapped
+    const nameInputs = screen.getAllByPlaceholderText('カラム名 (snake_case)');
+    expect((nameInputs[0] as HTMLInputElement).value).toBe('second');
+    expect((nameInputs[1] as HTMLInputElement).value).toBe('first');
+  });
 });

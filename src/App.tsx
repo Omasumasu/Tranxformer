@@ -210,9 +210,12 @@ export function App() {
           <DataImport
             preview={filePreview.preview}
             filePath={filePreview.filePath}
+            sheets={filePreview.sheets}
+            selectedSheet={filePreview.selectedSheet}
             loading={filePreview.loading}
             error={filePreview.error}
             onSelectFile={handleSelectFile}
+            onSelectSheet={filePreview.loadSheet}
             onNext={handleGoToReview}
           />
           {filePreview.preview && selectedTemplate && (

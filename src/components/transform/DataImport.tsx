@@ -4,18 +4,24 @@ import type { DataPreview } from '../../lib/types';
 interface DataImportProps {
   preview: DataPreview | null;
   filePath: string | null;
+  sheets: string[];
+  selectedSheet: string | null;
   loading: boolean;
   error: string | null;
   onSelectFile: () => void;
+  onSelectSheet: (sheet: string) => void;
   onNext: () => void;
 }
 
 export function DataImport({
   preview,
   filePath,
+  sheets,
+  selectedSheet,
   loading,
   error,
   onSelectFile,
+  onSelectSheet,
   onNext,
 }: DataImportProps) {
   return (
@@ -44,6 +50,27 @@ export function DataImport({
       </button>
 
       {filePath && <p className="text-xs text-muted-foreground">ファイル: {filePath}</p>}
+
+      {sheets.length > 1 && (
+        <div className="flex items-center gap-2">
+          <label htmlFor="sheet-select" className="text-sm font-medium">
+            シート:
+          </label>
+          <select
+            id="sheet-select"
+            value={selectedSheet ?? ''}
+            onChange={(e) => onSelectSheet(e.target.value)}
+            disabled={loading}
+            className="rounded-md border bg-background px-3 py-1.5 text-sm"
+          >
+            {sheets.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">

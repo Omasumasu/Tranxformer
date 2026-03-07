@@ -53,6 +53,8 @@ export function useTemplates() {
 export function useFilePreview() {
   const [preview, setPreview] = useState<DataPreview | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
+  const [sheets, setSheets] = useState<string[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,9 +62,21 @@ export function useFilePreview() {
     setLoading(true);
     setError(null);
     setFilePath(path);
+    setSheets([]);
+    setSelectedSheet(null);
     try {
       const data = await commands.readFilePreview(path);
       setPreview(data);
+
+      const ext = path.split('.').pop()?.toLowerCase() ?? '';
+      const excelExts = ['xlsx', 'xls', 'xlsm', 'xlsb', 'ods'];
+      if (excelExts.includes(ext)) {
+        const sheetNames = await commands.listSheets(path);
+        setSheets(sheetNames);
+        if (sheetNames.length > 0) {
+          setSelectedSheet(sheetNames[0] ?? null);
+        }
+      }
     } catch (e) {
       setError(String(e));
       setPreview(null);
@@ -71,13 +85,34 @@ export function useFilePreview() {
     }
   }, []);
 
+  const loadSheet = useCallback(
+    async (sheet: string) => {
+      if (!filePath) return;
+      setLoading(true);
+      setError(null);
+      setSelectedSheet(sheet);
+      try {
+        const data = await commands.readFilePreviewSheet(filePath, sheet);
+        setPreview(data);
+      } catch (e) {
+        setError(String(e));
+        setPreview(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filePath],
+  );
+
   const clear = useCallback(() => {
     setPreview(null);
     setFilePath(null);
+    setSheets([]);
+    setSelectedSheet(null);
     setError(null);
   }, []);
 
-  return { preview, filePath, loading, error, loadFile, clear };
+  return { preview, filePath, sheets, selectedSheet, loading, error, loadFile, loadSheet, clear };
 }
 
 export function useLlm() {

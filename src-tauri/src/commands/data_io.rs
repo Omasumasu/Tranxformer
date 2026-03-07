@@ -59,6 +59,28 @@ pub async fn read_file_full(path: String) -> Result<(Vec<String>, Vec<Record>), 
 }
 
 #[tauri::command]
+pub async fn list_sheets(path: String) -> Result<Vec<String>, AppError> {
+    let path = PathBuf::from(&path);
+    crate::infra::excel_io::list_sheets(&path)
+}
+
+#[tauri::command]
+pub async fn read_file_preview_sheet(path: String, sheet: String) -> Result<DataPreview, AppError> {
+    let path = PathBuf::from(&path);
+    let (headers, rows) = crate::infra::excel_io::read_excel_sheet(&path, &sheet)?;
+
+    let total_rows = rows.len();
+    let preview_rows: Vec<Vec<String>> = rows.into_iter().take(PREVIEW_ROWS).collect();
+    let records = rows_to_records(&headers, &preview_rows);
+
+    Ok(DataPreview {
+        headers,
+        rows: records,
+        total_rows,
+    })
+}
+
+#[tauri::command]
 pub async fn export_result(
     headers: Vec<String>,
     rows: Vec<Vec<String>>,

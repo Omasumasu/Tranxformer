@@ -30,6 +30,24 @@ export function TemplateEditor({ template: initial, onSave, onCancel }: Template
     setColumns([...columns, createEmptyColumn()]);
   };
 
+  const handleMoveUp = (index: number) => {
+    if (index <= 0) return;
+    const next = [...columns];
+    const temp = next[index];
+    next[index] = next[index - 1] as Column;
+    next[index - 1] = temp as Column;
+    setColumns(next);
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index >= columns.length - 1) return;
+    const next = [...columns];
+    const temp = next[index];
+    next[index] = next[index + 1] as Column;
+    next[index + 1] = temp as Column;
+    setColumns(next);
+  };
+
   const handleSave = () => {
     if (!name.trim()) {
       setError('テンプレート名を入力してください');
@@ -133,7 +151,11 @@ export function TemplateEditor({ template: initial, onSave, onCancel }: Template
             index={i}
             onChange={handleColumnChange}
             onRemove={handleColumnRemove}
+            onMoveUp={handleMoveUp}
+            onMoveDown={handleMoveDown}
             canRemove={columns.length > 1}
+            canMoveUp={i > 0}
+            canMoveDown={i < columns.length - 1}
           />
         ))}
       </div>

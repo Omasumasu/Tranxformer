@@ -28,6 +28,8 @@ pub fn run() {
             commands::template::import_template,
             commands::data_io::read_file_preview,
             commands::data_io::read_file_full,
+            commands::data_io::list_sheets,
+            commands::data_io::read_file_preview_sheet,
             commands::data_io::export_result,
             commands::transform::check_code_safety,
             commands::transform::execute_transform,
