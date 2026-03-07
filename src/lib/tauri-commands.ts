@@ -31,6 +31,10 @@ export async function readFilePreview(path: string): Promise<DataPreview> {
   return invoke('read_file_preview', { path });
 }
 
+export async function readFileFull(path: string): Promise<[string[], Record<string, unknown>[]]> {
+  return invoke('read_file_full', { path });
+}
+
 export async function exportResult(
   headers: string[],
   rows: string[][],

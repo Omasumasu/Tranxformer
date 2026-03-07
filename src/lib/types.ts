@@ -39,6 +39,11 @@ export interface ModelStatus {
   modelPath: string | null;
 }
 
+export interface GenerateProgress {
+  tokensGenerated: number;
+  maxTokens: number;
+}
+
 export type AppStep = 'template' | 'import' | 'review' | 'results';
 
 export function createEmptyColumn(): Column {

@@ -4,7 +4,7 @@ use crate::infra::llm_engine::LlmEngine;
 use crate::models::Template;
 use serde::Serialize;
 use std::sync::Mutex;
-use tauri::State;
+use tauri::{AppHandle, Emitter, State};
 
 /// LLMエンジンの共有状態
 pub struct LlmState {
@@ -67,6 +67,13 @@ pub fn get_model_status(state: State<'_, LlmState>) -> Result<ModelStatus, AppEr
     })
 }
 
+/// コード生成の進捗イベントペイロード
+#[derive(Debug, Clone, Serialize)]
+struct GenerateProgress {
+    tokens_generated: u32,
+    max_tokens: u32,
+}
+
 /// 入力データとテンプレートから変換コードを生成する
 #[tauri::command]
 pub async fn generate_transform_code(
@@ -74,6 +81,7 @@ pub async fn generate_transform_code(
     input_sample: Vec<Vec<String>>,
     template: Template,
     state: State<'_, LlmState>,
+    app: AppHandle,
 ) -> Result<String, AppError> {
     let prompt = build_transform_prompt(&input_sample, &input_headers, &template);
 
@@ -86,7 +94,16 @@ pub async fn generate_transform_code(
         .as_ref()
         .ok_or_else(|| AppError::Llm("モデルが読み込まれていません".to_string()))?;
 
-    let raw_output = engine.generate(&prompt, 1024)?;
+    let max_tokens: u32 = 1024;
+    let raw_output = engine.generate_with_callback(&prompt, max_tokens, |count, _| {
+        let _ = app.emit(
+            "llm-progress",
+            GenerateProgress {
+                tokens_generated: count,
+                max_tokens,
+            },
+        );
+    })?;
     let code = extract_code_block(&raw_output);
     Ok(code)
 }
