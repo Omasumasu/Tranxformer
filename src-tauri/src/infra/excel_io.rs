@@ -105,3 +105,83 @@ pub fn write_excel(path: &Path, headers: &[String], rows: &[Vec<String>]) -> Res
         .map_err(|e| AppError::Internal(e.to_string()))?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn write_and_read_excel_roundtrip() {
+        let tmp = std::env::temp_dir().join("tranxformer_test_excel_roundtrip.xlsx");
+        let headers = vec!["name".to_string(), "value".to_string()];
+        let rows = vec![
+            vec!["Alice".to_string(), "100".to_string()],
+            vec!["Bob".to_string(), "200".to_string()],
+        ];
+
+        write_excel(&tmp, &headers, &rows).unwrap();
+        let (h, r) = read_excel(&tmp).unwrap();
+        assert_eq!(h, headers);
+        assert_eq!(r, rows);
+
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn list_sheets_returns_sheet_names() {
+        let tmp = std::env::temp_dir().join("tranxformer_test_excel_sheets.xlsx");
+        let headers = vec!["col".to_string()];
+        let rows = vec![vec!["val".to_string()]];
+        write_excel(&tmp, &headers, &rows).unwrap();
+
+        let sheets = list_sheets(&tmp).unwrap();
+        assert!(!sheets.is_empty());
+
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn read_excel_sheet_by_name() {
+        let tmp = std::env::temp_dir().join("tranxformer_test_excel_sheet_name.xlsx");
+        let headers = vec!["x".to_string()];
+        let rows = vec![vec!["1".to_string()]];
+        write_excel(&tmp, &headers, &rows).unwrap();
+
+        let sheets = list_sheets(&tmp).unwrap();
+        let (h, r) = read_excel_sheet(&tmp, &sheets[0]).unwrap();
+        assert_eq!(h, vec!["x"]);
+        assert_eq!(r, vec![vec!["1"]]);
+
+        let _ = std::fs::remove_file(&tmp);
+    }
+
+    #[test]
+    fn read_excel_nonexistent_file_returns_error() {
+        let result = read_excel(Path::new("/tmp/nonexistent_file.xlsx"));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn cell_to_string_handles_all_types() {
+        assert_eq!(cell_to_string(&Data::Int(42)), "42");
+        assert_eq!(cell_to_string(&Data::Float(3.14)), "3.14");
+        assert_eq!(cell_to_string(&Data::Float(5.0)), "5");
+        assert_eq!(cell_to_string(&Data::String("hello".into())), "hello");
+        assert_eq!(cell_to_string(&Data::Bool(true)), "true");
+        assert_eq!(cell_to_string(&Data::Empty), "");
+    }
+
+    #[test]
+    fn write_excel_empty_data() {
+        let tmp = std::env::temp_dir().join("tranxformer_test_excel_empty.xlsx");
+        let headers = vec!["a".to_string(), "b".to_string()];
+        let rows: Vec<Vec<String>> = vec![];
+
+        write_excel(&tmp, &headers, &rows).unwrap();
+        let (h, r) = read_excel(&tmp).unwrap();
+        assert_eq!(h, headers);
+        assert!(r.is_empty());
+
+        let _ = std::fs::remove_file(&tmp);
+    }
+}

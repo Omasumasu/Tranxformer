@@ -20,7 +20,6 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .manage(commands::llm::LlmState::new())
         .invoke_handler(tauri::generate_handler![
-            commands::greet::greet,
             commands::template::list_templates,
             commands::template::get_template,
             commands::template::save_template,

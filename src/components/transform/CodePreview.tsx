@@ -1,22 +1,26 @@
-import { AlertTriangle, CheckCircle, Play } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Loader2, Play, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import type { SafetyReport } from '../../lib/types';
 
 interface CodePreviewProps {
   code: string;
   safetyReport: SafetyReport | null;
+  error: string | null;
   onCodeChange: (code: string) => void;
   onCheckSafety: () => void;
   onExecute: () => void;
+  onRetryGenerate: () => void;
   loading: boolean;
 }
 
 export function CodePreview({
   code,
   safetyReport,
+  error,
   onCodeChange,
   onCheckSafety,
   onExecute,
+  onRetryGenerate,
   loading,
 }: CodePreviewProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -28,6 +32,15 @@ export function CodePreview({
         <div className="flex gap-2">
           <button
             type="button"
+            onClick={onRetryGenerate}
+            disabled={loading}
+            className="flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
+          >
+            <RefreshCw className="h-4 w-4" />
+            再生成
+          </button>
+          <button
+            type="button"
             onClick={() => setIsEditing(!isEditing)}
             className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
           >
@@ -36,7 +49,8 @@ export function CodePreview({
           <button
             type="button"
             onClick={onCheckSafety}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted"
+            disabled={loading}
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50"
           >
             安全性チェック
           </button>
@@ -46,15 +60,29 @@ export function CodePreview({
             disabled={loading || (safetyReport !== null && !safetyReport.isSafe)}
             className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-1.5 text-sm text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
           >
-            <Play className="h-4 w-4" />
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
             実行
           </button>
         </div>
       </div>
 
+      {error && (
+        <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      )}
+
       {safetyReport && <SafetyBadge report={safetyReport} />}
 
-      {isEditing ? (
+      {loading && !code ? (
+        <div className="flex h-96 items-center justify-center rounded-lg border bg-muted/30">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            コードを生成中...
+          </div>
+        </div>
+      ) : isEditing ? (
         <textarea
           value={code}
           onChange={(e) => onCodeChange(e.target.value)}

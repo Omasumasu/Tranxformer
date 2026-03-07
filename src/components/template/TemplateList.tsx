@@ -1,4 +1,4 @@
-import { FileText, Trash2 } from 'lucide-react';
+import { Download, FileText, Pencil, Trash2 } from 'lucide-react';
 import type { Template } from '../../lib/types';
 
 interface TemplateListProps {
@@ -6,9 +6,18 @@ interface TemplateListProps {
   selectedId: string | null;
   onSelect: (template: Template) => void;
   onDelete: (id: string) => void;
+  onEdit: (template: Template) => void;
+  onExport: (id: string) => void;
 }
 
-export function TemplateList({ templates, selectedId, onSelect, onDelete }: TemplateListProps) {
+export function TemplateList({
+  templates,
+  selectedId,
+  onSelect,
+  onDelete,
+  onEdit,
+  onExport,
+}: TemplateListProps) {
   if (templates.length === 0) {
     return (
       <p className="px-3 py-4 text-center text-sm text-muted-foreground">
@@ -36,17 +45,41 @@ export function TemplateList({ templates, selectedId, onSelect, onDelete }: Temp
             <FileText className="h-4 w-4 shrink-0" />
             <span className="truncate">{t.name}</span>
           </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(t.id);
-            }}
-            className="hidden rounded p-0.5 hover:text-destructive group-hover:block"
-            title="削除"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
+          <div className="hidden gap-0.5 group-hover:flex">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(t);
+              }}
+              className="rounded p-0.5 hover:text-primary"
+              title="編集"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onExport(t.id);
+              }}
+              className="rounded p-0.5 hover:text-primary"
+              title="エクスポート"
+            >
+              <Download className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(t.id);
+              }}
+              className="rounded p-0.5 hover:text-destructive"
+              title="削除"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       ))}
     </div>

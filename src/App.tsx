@@ -14,7 +14,7 @@ import type { AppStep, Template } from './lib/types';
 import { createEmptyTemplate } from './lib/types';
 
 export function App() {
-  const { templates, save: saveTemplate, remove: removeTemplate } = useTemplates();
+  const { templates, save: saveTemplate, remove: removeTemplate, refresh } = useTemplates();
   const filePreview = useFilePreview();
   const transform = useTransform();
   const llm = useLlm();
@@ -25,6 +25,7 @@ export function App() {
   const [generatedCode, setGeneratedCode] = useState('');
   const [transformResult, setTransformResult] = useState<Record<string, unknown>[]>([]);
   const [showSettings, setShowSettings] = useState(false);
+  const [codeGenError, setCodeGenError] = useState<string | null>(null);
 
   const handleNewTemplate = () => {
     setEditingTemplate(createEmptyTemplate());
@@ -38,6 +39,12 @@ export function App() {
     filePreview.clear();
     setGeneratedCode('');
     setTransformResult([]);
+    setCodeGenError(null);
+  };
+
+  const handleEditTemplate = (t: Template) => {
+    setEditingTemplate(t);
+    setStep('template');
   };
 
   const handleSaveTemplate = async (t: Template) => {
@@ -55,6 +62,26 @@ export function App() {
     }
   };
 
+  const handleExportTemplate = async (id: string) => {
+    const path = await save({
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    });
+    if (!path) return;
+    await commands.exportTemplate(id, path);
+  };
+
+  const handleImportTemplate = async () => {
+    const file = await open({
+      multiple: false,
+      filters: [{ name: 'テンプレート', extensions: ['json'] }],
+    });
+    if (!file) return;
+    const imported = await commands.importTemplate(file);
+    await refresh();
+    setSelectedTemplate(imported);
+    setStep('import');
+  };
+
   const handleSelectFile = async () => {
     const file = await open({
       multiple: false,
@@ -65,9 +92,8 @@ export function App() {
     }
   };
 
-  const handleGoToReview = async () => {
-    setStep('review');
-
+  const generateCode = async () => {
+    setCodeGenError(null);
     if (llm.status.loaded && filePreview.preview && selectedTemplate) {
       const headers = filePreview.preview.headers;
       const sampleRows = filePreview.preview.rows
@@ -78,17 +104,33 @@ export function App() {
         setGeneratedCode(code);
         return;
       }
+      if (llm.error) {
+        setCodeGenError(llm.error);
+        return;
+      }
     }
 
-    setGeneratedCode(
-      '// LLMモデルが未ロードのため、コードを手動で入力してください\n' +
-        '// 例:\n' +
-        'function transform(rows) {\n' +
-        '  return rows.map(function(row) {\n' +
-        '    return row;\n' +
-        '  });\n' +
-        '}',
-    );
+    if (!llm.status.loaded) {
+      setGeneratedCode(
+        '// LLMモデルが未ロードのため、コードを手動で入力してください\n' +
+          '// 例:\n' +
+          'function transform(rows) {\n' +
+          '  return rows.map(function(row) {\n' +
+          '    return row;\n' +
+          '  });\n' +
+          '}',
+      );
+    }
+  };
+
+  const handleGoToReview = async () => {
+    setStep('review');
+    await generateCode();
+  };
+
+  const handleRetryGenerate = async () => {
+    setCodeGenError(null);
+    await generateCode();
   };
 
   const handleExecute = async () => {
@@ -110,10 +152,11 @@ export function App() {
     }
   };
 
-  const handleExport = async (format: 'Csv' | 'Excel') => {
+  const handleExport = async (format: 'Csv' | 'Tsv' | 'Excel') => {
     if (transformResult.length === 0) return;
 
-    const ext = format === 'Csv' ? 'csv' : 'xlsx';
+    const extMap = { Csv: 'csv', Tsv: 'tsv', Excel: 'xlsx' } as const;
+    const ext = extMap[format];
     const path = await save({
       filters: [{ name: format, extensions: [ext] }],
     });
@@ -131,6 +174,7 @@ export function App() {
     filePreview.clear();
     setGeneratedCode('');
     setTransformResult([]);
+    setCodeGenError(null);
   };
 
   const renderMainContent = () => {
@@ -182,9 +226,11 @@ export function App() {
         <CodePreview
           code={generatedCode}
           safetyReport={transform.safetyReport}
+          error={codeGenError ?? transform.error}
           onCodeChange={setGeneratedCode}
           onCheckSafety={() => transform.checkSafety(generatedCode)}
           onExecute={handleExecute}
+          onRetryGenerate={handleRetryGenerate}
           loading={transform.loading || llm.loading}
         />
       );
@@ -209,6 +255,9 @@ export function App() {
         onNewTemplate={handleNewTemplate}
         onSelectTemplate={handleSelectTemplate}
         onDeleteTemplate={handleDeleteTemplate}
+        onEditTemplate={handleEditTemplate}
+        onExportTemplate={handleExportTemplate}
+        onImportTemplate={handleImportTemplate}
         onSettings={() => setShowSettings(true)}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
