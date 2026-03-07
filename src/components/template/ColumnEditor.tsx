@@ -31,7 +31,7 @@ export function ColumnEditor({
   canMoveUp,
   canMoveDown,
 }: ColumnEditorProps) {
-  const update = (field: keyof Column, value: string) => {
+  const update = (field: keyof Column, value: string | boolean) => {
     onChange(index, { ...column, [field]: value });
   };
 
@@ -63,13 +63,24 @@ export function ColumnEditor({
             </option>
           ))}
         </select>
-        <input
-          type="text"
-          placeholder="説明（LLMへのヒント）"
-          value={column.description}
-          onChange={(e) => update('description', e.target.value)}
-          className="rounded-md border bg-background px-3 py-1.5 text-sm"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            placeholder="説明（LLMへのヒント）"
+            value={column.description}
+            onChange={(e) => update('description', e.target.value)}
+            className="flex-1 rounded-md border bg-background px-3 py-1.5 text-sm"
+          />
+          <label className="flex items-center gap-1 text-sm text-muted-foreground whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={column.required}
+              onChange={(e) => update('required', e.target.checked)}
+              className="rounded"
+            />
+            必須
+          </label>
+        </div>
       </div>
       <div className="flex flex-col gap-0.5">
         <button

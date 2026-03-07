@@ -59,8 +59,20 @@ describe('TemplateEditor', () => {
     const template = {
       ...defaultTemplate,
       columns: [
-        { name: 'col1', label: 'Label1', dataType: 'Text' as const, description: '' },
-        { name: 'col2', label: 'Label2', dataType: 'Text' as const, description: '' },
+        {
+          name: 'col1',
+          label: 'Label1',
+          dataType: 'Text' as const,
+          required: false,
+          description: '',
+        },
+        {
+          name: 'col2',
+          label: 'Label2',
+          dataType: 'Text' as const,
+          required: false,
+          description: '',
+        },
       ],
     };
     render(<TemplateEditor template={template} onSave={onSave} onCancel={onCancel} />);
@@ -74,8 +86,20 @@ describe('TemplateEditor', () => {
     const template = {
       ...defaultTemplate,
       columns: [
-        { name: 'col1', label: 'Label1', dataType: 'Text' as const, description: '' },
-        { name: 'col2', label: 'Label2', dataType: 'Text' as const, description: '' },
+        {
+          name: 'col1',
+          label: 'Label1',
+          dataType: 'Text' as const,
+          required: false,
+          description: '',
+        },
+        {
+          name: 'col2',
+          label: 'Label2',
+          dataType: 'Text' as const,
+          required: false,
+          description: '',
+        },
       ],
     };
     render(<TemplateEditor template={template} onSave={onSave} onCancel={onCancel} />);
@@ -92,8 +116,20 @@ describe('TemplateEditor', () => {
       ...defaultTemplate,
       name: 'Test',
       columns: [
-        { name: 'first', label: 'First', dataType: 'Text' as const, description: '' },
-        { name: 'second', label: 'Second', dataType: 'Text' as const, description: '' },
+        {
+          name: 'first',
+          label: 'First',
+          dataType: 'Text' as const,
+          required: false,
+          description: '',
+        },
+        {
+          name: 'second',
+          label: 'Second',
+          dataType: 'Text' as const,
+          required: false,
+          description: '',
+        },
       ],
     };
     render(<TemplateEditor template={template} onSave={onSave} onCancel={onCancel} />);
