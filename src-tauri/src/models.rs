@@ -19,7 +19,7 @@ pub struct ColumnDef {
     pub description: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ColumnType {
     Text,
     Number,
@@ -49,4 +49,19 @@ pub struct TransformResult {
 pub struct SafetyReport {
     pub is_safe: bool,
     pub violations: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InferredColumn {
+    pub name: String,
+    pub label: String,
+    pub data_type: ColumnType,
+    pub sample_values: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SchemaInferenceResult {
+    pub columns: Vec<InferredColumn>,
+    pub sample_rows: Vec<Vec<String>>,
+    pub total_rows: usize,
 }
