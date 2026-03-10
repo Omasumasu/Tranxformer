@@ -81,6 +81,15 @@ export async function generateTransformCode(
   return invoke('generate_transform_code', { inputHeaders, inputSample, template });
 }
 
+export async function inferJoinKeys(
+  baseHeaders: string[],
+  baseSample: string[][],
+  joinHeaders: string[],
+  joinSample: string[][],
+): Promise<string> {
+  return invoke('infer_join_keys', { baseHeaders, baseSample, joinHeaders, joinSample });
+}
+
 // 変換
 export async function checkCodeSafety(code: string): Promise<SafetyReport> {
   return invoke('check_code_safety', { code });

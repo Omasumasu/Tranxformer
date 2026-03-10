@@ -1,4 +1,4 @@
-use crate::core::prompt::build_transform_prompt;
+use crate::core::prompt::{build_join_key_prompt, build_transform_prompt};
 use crate::error::AppError;
 use crate::infra::llm_engine::LlmEngine;
 use crate::models::Template;
@@ -106,6 +106,41 @@ pub async fn generate_transform_code(
     })?;
     let code = extract_code_block(&raw_output);
     Ok(code)
+}
+
+/// 2つのデータセットの結合キーをLLMで推論する
+#[tauri::command]
+pub async fn infer_join_keys(
+    state: State<'_, LlmState>,
+    app_handle: tauri::AppHandle,
+    base_headers: Vec<String>,
+    base_sample: Vec<Vec<String>>,
+    join_headers: Vec<String>,
+    join_sample: Vec<Vec<String>>,
+) -> Result<String, AppError> {
+    let prompt = build_join_key_prompt(&base_headers, &base_sample, &join_headers, &join_sample);
+
+    let guard = state
+        .engine
+        .lock()
+        .map_err(|e| AppError::Llm(format!("ロック取得失敗: {e}")))?;
+
+    let engine = guard
+        .as_ref()
+        .ok_or_else(|| AppError::Llm("モデルが読み込まれていません".to_string()))?;
+
+    let max_tokens: u32 = 512;
+    let raw_output = engine.generate_with_callback(&prompt, max_tokens, |count, _| {
+        let _ = app_handle.emit(
+            "llm-progress",
+            GenerateProgress {
+                tokens_generated: count,
+                max_tokens,
+            },
+        );
+    })?;
+
+    Ok(raw_output.trim().to_string())
 }
 
 /// LLM出力からコードブロックを抽出する純粋関数
