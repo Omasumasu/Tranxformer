@@ -5,7 +5,9 @@ fn to_snake_case(s: &str) -> String {
     let mut result = String::with_capacity(s.len());
     let mut prev_was_separator = false;
 
-    for (i, ch) in s.chars().enumerate() {
+    let mut prev_ch: Option<char> = None;
+
+    for ch in s.chars() {
         if ch == ' ' || ch == '-' || ch == '_' {
             if !result.is_empty() && !prev_was_separator {
                 result.push('_');
@@ -13,8 +15,7 @@ fn to_snake_case(s: &str) -> String {
             prev_was_separator = true;
         } else if ch.is_ascii_uppercase() {
             // Insert underscore before uppercase if previous char was lowercase
-            if i > 0 && !prev_was_separator && !result.is_empty() {
-                let prev_ch = s.chars().nth(i - 1);
+            if !prev_was_separator && !result.is_empty() {
                 if let Some(p) = prev_ch {
                     if p.is_ascii_lowercase() {
                         result.push('_');
@@ -27,6 +28,7 @@ fn to_snake_case(s: &str) -> String {
             result.push(ch);
             prev_was_separator = false;
         }
+        prev_ch = Some(ch);
     }
 
     result
@@ -39,9 +41,9 @@ fn infer_value_type(value: &str) -> Option<ColumnType> {
         return None;
     }
 
-    // Boolean: true/false/yes/no/1/0 (case-insensitive)
+    // Boolean: true/false/yes/no (case-insensitive)
     let lower = trimmed.to_lowercase();
-    if matches!(lower.as_str(), "true" | "false" | "yes" | "no" | "1" | "0") {
+    if matches!(lower.as_str(), "true" | "false" | "yes" | "no") {
         return Some(ColumnType::Boolean);
     }
 
@@ -61,11 +63,11 @@ fn infer_value_type(value: &str) -> Option<ColumnType> {
 /// Check if a string matches a date pattern
 fn is_date(s: &str) -> bool {
     // YYYY-MM-DD
-    if matches_date_pattern(s, '-', true) {
+    if matches_date_pattern(s, '-') {
         return true;
     }
     // YYYY/MM/DD
-    if matches_date_pattern(s, '/', true) {
+    if matches_date_pattern(s, '/') {
         return true;
     }
     // MM/DD/YYYY or DD/MM/YYYY (ambiguous, but accept both as date)
@@ -79,20 +81,16 @@ fn is_date(s: &str) -> bool {
     false
 }
 
-fn matches_date_pattern(s: &str, sep: char, year_first: bool) -> bool {
+fn matches_date_pattern(s: &str, sep: char) -> bool {
     let parts: Vec<&str> = s.split(sep).collect();
     if parts.len() != 3 {
         return false;
     }
-    if year_first {
-        // YYYY-MM-DD or YYYY/MM/DD
-        let year = parts[0].parse::<u32>();
-        let month = parts[1].parse::<u32>();
-        let day = parts[2].parse::<u32>();
-        matches!((year, month, day), (Ok(y), Ok(m), Ok(d)) if (1000..=9999).contains(&y) && (1..=12).contains(&m) && (1..=31).contains(&d))
-    } else {
-        false
-    }
+    // YYYY-MM-DD or YYYY/MM/DD
+    let year = parts[0].parse::<u32>();
+    let month = parts[1].parse::<u32>();
+    let day = parts[2].parse::<u32>();
+    matches!((year, month, day), (Ok(y), Ok(m), Ok(d)) if (1000..=9999).contains(&y) && (1..=12).contains(&m) && (1..=31).contains(&d))
 }
 
 fn matches_mdy_or_dmy(s: &str, sep: char) -> bool {
