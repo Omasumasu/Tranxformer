@@ -68,6 +68,47 @@ fn format_column_type(ct: &ColumnType) -> &'static str {
     }
 }
 
+/// 複数ファイルのヘッダーとサンプルデータから結合キーを推論するプロンプトを生成
+pub fn build_join_key_prompt(
+    base_headers: &[String],
+    base_sample: &[Vec<String>],
+    join_headers: &[String],
+    join_sample: &[Vec<String>],
+) -> String {
+    let mut prompt = String::from(
+        "あなたはデータ結合の専門家です。2つのデータセットをLEFT JOINで結合するための結合キーを推論してください。\n\n",
+    );
+
+    prompt.push_str("## 基準テーブル（左側）\n");
+    prompt.push_str(&format_input_sample(base_headers, base_sample));
+    prompt.push_str("\n\n");
+
+    prompt.push_str("## 結合テーブル（右側）\n");
+    prompt.push_str(&format_input_sample(join_headers, join_sample));
+    prompt.push_str("\n\n");
+
+    prompt.push_str("## 要件\n");
+    prompt.push_str("- 基準テーブルの行に対して、結合テーブルからマッチする行を結合します\n");
+    prompt.push_str("- 結合キーとなるカラムの対応関係を特定してください\n");
+    prompt.push_str("- 複合キー（複数カラムの連結等）が必要な場合も対応してください\n\n");
+
+    prompt.push_str("## 出力形式\n");
+    prompt.push_str("以下のJSON形式のみを出力してください（説明不要）:\n");
+    prompt.push_str("```json\n");
+    prompt.push_str("{\n");
+    prompt.push_str("  \"baseExpression\": \"file.カラム名\",\n");
+    prompt.push_str("  \"joinExpression\": \"file.カラム名\",\n");
+    prompt.push_str("  \"explanation\": \"結合キーの説明\"\n");
+    prompt.push_str("}\n");
+    prompt.push_str("```\n\n");
+    prompt.push_str("- `baseExpression`: 基準テーブルの行から結合キーを計算するJavaScript式。`file.カラム名` でカラム値にアクセス\n");
+    prompt.push_str("- `joinExpression`: 結合テーブルの行から結合キーを計算するJavaScript式\n");
+    prompt.push_str("- 例: 単純一致 → `file.customer_id`\n");
+    prompt.push_str("- 例: 複合キー → `file.姓 + file.名`\n");
+
+    prompt
+}
+
 /// テンプレートの出力カラム定義をJSONスキーマ風に表現する
 pub fn build_output_schema(columns: &[ColumnDef]) -> String {
     let fields: Vec<String> = columns
@@ -156,5 +197,22 @@ mod tests {
     fn empty_sample_shows_placeholder() {
         let result = format_input_sample(&[], &[]);
         assert_eq!(result, "(データなし)");
+    }
+
+    #[test]
+    fn build_join_key_prompt_contains_both_tables() {
+        let base_h = vec!["id".to_string(), "name".to_string()];
+        let base_s = vec![vec!["1".to_string(), "Alice".to_string()]];
+        let join_h = vec!["user_id".to_string(), "score".to_string()];
+        let join_s = vec![vec!["1".to_string(), "90".to_string()]];
+
+        let prompt = build_join_key_prompt(&base_h, &base_s, &join_h, &join_s);
+
+        assert!(prompt.contains("基準テーブル"));
+        assert!(prompt.contains("結合テーブル"));
+        assert!(prompt.contains("id\tname"));
+        assert!(prompt.contains("user_id\tscore"));
+        assert!(prompt.contains("baseExpression"));
+        assert!(prompt.contains("joinExpression"));
     }
 }
