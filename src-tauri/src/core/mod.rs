@@ -1,3 +1,4 @@
+pub mod join;
 pub mod prompt;
 pub mod safety;
 pub mod schema_inference;
