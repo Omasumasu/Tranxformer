@@ -58,6 +58,52 @@ export interface SchemaInferenceResult {
   totalRows: number;
 }
 
+export interface InputTemplate {
+  id: string;
+  name: string;
+  description: string;
+  files: FileSlot[];
+  joinType: 'Left';
+  joinExpression: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FileSlot {
+  role: 'Base' | 'Join';
+  label: string;
+  expectedHeaders: string[];
+}
+
+export interface JoinPreview {
+  headers: string[];
+  rows: Record<string, unknown>[];
+  baseRowCount: number;
+  joinedRowCount: number;
+}
+
+export interface ImportedFile {
+  path: string;
+  role: 'Base' | 'Join';
+  label: string;
+  headers: string[];
+  totalRows: number;
+}
+
+export function createEmptyInputTemplate(): InputTemplate {
+  const now = new Date().toISOString();
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    description: '',
+    files: [],
+    joinType: 'Left',
+    joinExpression: '',
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export type AppStep = 'template' | 'import' | 'review' | 'results';
 
 export function createEmptyColumn(): Column {

@@ -1,6 +1,8 @@
 import { invoke } from '@tauri-apps/api/core';
 import type {
   DataPreview,
+  InputTemplate,
+  JoinPreview,
   ModelStatus,
   SafetyReport,
   SchemaInferenceResult,
@@ -86,4 +88,43 @@ export async function checkCodeSafety(code: string): Promise<SafetyReport> {
 
 export async function executeTransform(code: string, inputData: string): Promise<string> {
   return invoke('execute_transform', { code, inputData });
+}
+
+// 結合
+export async function joinPreview(
+  basePath: string,
+  joinPath: string,
+  baseExpression: string,
+  joinExpression: string,
+  joinPrefix: string,
+): Promise<JoinPreview> {
+  return invoke('join_preview', { basePath, joinPath, baseExpression, joinExpression, joinPrefix });
+}
+
+export async function joinAndReadFull(
+  basePath: string,
+  joinPath: string,
+  baseExpression: string,
+  joinExpression: string,
+  joinPrefix: string,
+): Promise<[string[], Record<string, unknown>[]]> {
+  return invoke('join_and_read_full', {
+    basePath,
+    joinPath,
+    baseExpression,
+    joinExpression,
+    joinPrefix,
+  });
+}
+
+export async function listInputTemplates(): Promise<InputTemplate[]> {
+  return invoke('list_input_templates');
+}
+
+export async function saveInputTemplate(template: InputTemplate): Promise<void> {
+  return invoke('save_input_template', { template });
+}
+
+export async function deleteInputTemplate(id: string): Promise<void> {
+  return invoke('delete_input_template', { id });
 }
