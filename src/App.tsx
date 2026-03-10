@@ -8,12 +8,13 @@ import { SchemaPreview } from './components/template/SchemaPreview';
 import { TemplateEditor } from './components/template/TemplateEditor';
 import { CodePreview } from './components/transform/CodePreview';
 import { DataImport } from './components/transform/DataImport';
+import { JoinSettings } from './components/transform/JoinSettings';
 import { MappingView } from './components/transform/MappingView';
 import { ResultView } from './components/transform/ResultView';
 import { useFilePreview, useLlm, useTemplates, useTransform } from './hooks/useTauri';
 import * as commands from './lib/tauri-commands';
-import type { AppStep, DataType, InferredColumn, Template } from './lib/types';
-import { createEmptyTemplate } from './lib/types';
+import type { AppStep, DataType, ImportedFile, InferredColumn, Template } from './lib/types';
+import { createEmptyInputTemplate, createEmptyTemplate } from './lib/types';
 
 export function App() {
   const { templates, save: saveTemplate, remove: removeTemplate, refresh } = useTemplates();
@@ -32,6 +33,11 @@ export function App() {
   const [inferredColumns, setInferredColumns] = useState<InferredColumn[] | null>(null);
   const [inferring, setInferring] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [importedFiles, setImportedFiles] = useState<ImportedFile[]>([]);
+  const [joinedFullData, setJoinedFullData] = useState<{
+    headers: string[];
+    rows: Record<string, unknown>[];
+  } | null>(null);
 
   const handleNewTemplate = () => {
     setShowNewTemplateDialog(true);
@@ -91,6 +97,98 @@ export function App() {
     setInferredColumns(null);
   };
 
+  const handleAddFile = async () => {
+    const file = await open({
+      multiple: false,
+      filters: [{ name: 'データファイル', extensions: ['csv', 'tsv', 'txt', 'xlsx', 'xls'] }],
+    });
+    if (!file) return;
+
+    const preview = await commands.readFilePreview(file);
+    const label = file.split('/').pop() ?? file;
+    const isFirst = importedFiles.length === 0;
+    const newFile: ImportedFile = {
+      path: file,
+      role: isFirst ? 'Base' : 'Join',
+      label,
+      headers: preview.headers,
+      totalRows: preview.totalRows,
+    };
+    setImportedFiles((prev) => [...prev, newFile]);
+
+    // 最初のファイルの場合、filePreviewにも読み込む（既存の単一ファイルフローとの互換性）
+    if (isFirst) {
+      await filePreview.loadFile(file);
+    }
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setImportedFiles((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      // 基準テーブルが削除された場合、最初のファイルを基準に
+      const first = next[0];
+      if (first && !next.some((f) => f.role === 'Base')) {
+        next[0] = { ...first, role: 'Base' };
+      }
+      return next;
+    });
+  };
+
+  const handleSetBase = (index: number) => {
+    setImportedFiles((prev) =>
+      prev.map((f, i) => ({
+        ...f,
+        role: i === index ? 'Base' : 'Join',
+      })),
+    );
+  };
+
+  const handleJoinConfigured = async (baseExpr: string, joinExpr: string) => {
+    const baseFile = importedFiles.find((f) => f.role === 'Base');
+    const joinFile = importedFiles.find((f) => f.role === 'Join');
+    if (baseFile && joinFile) {
+      try {
+        const [headers, rows] = await commands.joinAndReadFull(
+          baseFile.path,
+          joinFile.path,
+          baseExpr,
+          joinExpr,
+          'j',
+        );
+        setJoinedFullData({ headers, rows });
+      } catch {
+        // エラーは結合設定画面で表示済み
+      }
+    }
+
+    setStep('review');
+    await generateCode();
+  };
+
+  const handleSaveInputTemplate = async (name: string, baseExpr: string, joinExpr: string) => {
+    const tmpl = createEmptyInputTemplate();
+    tmpl.name = name;
+    tmpl.files = importedFiles.map((f) => ({
+      role: f.role,
+      label: f.label,
+      expectedHeaders: f.headers,
+    }));
+    tmpl.joinExpression = `${baseExpr} === ${joinExpr}`;
+    try {
+      await commands.saveInputTemplate(tmpl);
+    } catch {
+      // テンプレート保存失敗は致命的ではない
+    }
+  };
+
+  const handleImportNext = () => {
+    if (importedFiles.length >= 2) {
+      setStep('join');
+    } else {
+      handleGoToReview();
+    }
+  };
+
   const handleSelectTemplate = (t: Template) => {
     setSelectedTemplate(t);
     setEditingTemplate(null);
@@ -99,6 +197,8 @@ export function App() {
     setGeneratedCode('');
     setTransformResult([]);
     setCodeGenError(null);
+    setImportedFiles([]);
+    setJoinedFullData(null);
   };
 
   const handleEditTemplate = (t: Template) => {
@@ -204,12 +304,19 @@ export function App() {
   };
 
   const handleExecute = async () => {
-    if (!filePreview.filePath) return;
-
     const report = await transform.checkSafety(generatedCode);
     if (!report?.isSafe) return;
 
-    const [, fullRows] = await commands.readFileFull(filePreview.filePath);
+    let fullRows: Record<string, unknown>[];
+    if (joinedFullData) {
+      fullRows = joinedFullData.rows;
+    } else if (filePreview.filePath) {
+      const [, rows] = await commands.readFileFull(filePreview.filePath);
+      fullRows = rows;
+    } else {
+      return;
+    }
+
     const inputData = JSON.stringify(fullRows);
     const result = await transform.execute(generatedCode, inputData);
     if (result) {
@@ -246,6 +353,8 @@ export function App() {
     setGeneratedCode('');
     setTransformResult([]);
     setCodeGenError(null);
+    setImportedFiles([]);
+    setJoinedFullData(null);
   };
 
   const renderMainContent = () => {
@@ -313,13 +422,37 @@ export function App() {
             error={filePreview.error}
             onSelectFile={handleSelectFile}
             onSelectSheet={filePreview.loadSheet}
-            onNext={handleGoToReview}
+            onNext={handleImportNext}
+            importedFiles={importedFiles}
+            onAddFile={handleAddFile}
+            onRemoveFile={handleRemoveFile}
+            onSetBase={handleSetBase}
           />
           {filePreview.preview && selectedTemplate && (
             <MappingView inputHeaders={filePreview.preview.headers} template={selectedTemplate} />
           )}
         </div>
       );
+    }
+
+    if (step === 'join') {
+      const baseFile = importedFiles.find((f) => f.role === 'Base');
+      const joinFile = importedFiles.find((f) => f.role === 'Join');
+      if (baseFile && joinFile) {
+        return (
+          <JoinSettings
+            baseFile={baseFile}
+            joinFile={joinFile}
+            llmAvailable={llm.status.loaded}
+            onJoinConfigured={handleJoinConfigured}
+            onBack={() => setStep('import')}
+            onSaveInputTemplate={handleSaveInputTemplate}
+          />
+        );
+      }
+      // フォールバック: ファイルが不足していたらimportに戻す
+      setStep('import');
+      return null;
     }
 
     if (step === 'review') {

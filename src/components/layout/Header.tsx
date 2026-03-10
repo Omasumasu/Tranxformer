@@ -3,11 +3,12 @@ import type { AppStep } from '../../lib/types';
 const STEP_LABELS: Record<AppStep, string> = {
   template: 'テンプレート',
   import: 'データ読み込み',
+  join: '結合設定',
   review: 'コードレビュー',
   results: '結果',
 };
 
-const STEPS: AppStep[] = ['template', 'import', 'review', 'results'];
+const STEPS: AppStep[] = ['template', 'import', 'join', 'review', 'results'];
 
 interface HeaderProps {
   currentStep: AppStep | null;

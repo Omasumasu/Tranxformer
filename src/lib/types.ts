@@ -104,7 +104,7 @@ export function createEmptyInputTemplate(): InputTemplate {
   };
 }
 
-export type AppStep = 'template' | 'import' | 'review' | 'results';
+export type AppStep = 'template' | 'import' | 'join' | 'review' | 'results';
 
 export function createEmptyColumn(): Column {
   return {
