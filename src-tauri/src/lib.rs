@@ -31,6 +31,7 @@ pub fn run() {
             commands::data_io::list_sheets,
             commands::data_io::read_file_preview_sheet,
             commands::data_io::export_result,
+            commands::data_io::infer_schema_from_file,
             commands::transform::check_code_safety,
             commands::transform::execute_transform,
             commands::llm::load_model,

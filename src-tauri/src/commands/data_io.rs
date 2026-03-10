@@ -1,6 +1,7 @@
+use crate::core::schema_inference;
 use crate::core::transform::rows_to_records;
 use crate::error::AppError;
-use crate::models::{DataPreview, Record};
+use crate::models::{DataPreview, Record, SchemaInferenceResult};
 use serde::Deserialize;
 use std::path::PathBuf;
 
@@ -76,6 +77,34 @@ pub async fn read_file_preview_sheet(path: String, sheet: String) -> Result<Data
     Ok(DataPreview {
         headers,
         rows: records,
+        total_rows,
+    })
+}
+
+const INFERENCE_ROWS: usize = 20;
+
+#[tauri::command]
+pub async fn infer_schema_from_file(path: String) -> Result<SchemaInferenceResult, AppError> {
+    let path = PathBuf::from(&path);
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+
+    let (headers, rows) = match ext.as_str() {
+        "csv" | "tsv" | "txt" => crate::infra::csv_io::read_csv(&path)?,
+        "xlsx" | "xls" | "xlsm" | "xlsb" | "ods" => crate::infra::excel_io::read_excel(&path)?,
+        _ => return Err(AppError::Validation(format!("未対応のファイル形式: {ext}"))),
+    };
+
+    let total_rows = rows.len();
+    let sample_rows: Vec<Vec<String>> = rows.into_iter().take(INFERENCE_ROWS).collect();
+    let columns = schema_inference::infer_schema(&headers, &sample_rows);
+
+    Ok(SchemaInferenceResult {
+        columns,
+        sample_rows,
         total_rows,
     })
 }

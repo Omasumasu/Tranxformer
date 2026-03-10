@@ -45,6 +45,19 @@ export interface GenerateProgress {
   maxTokens: number;
 }
 
+export interface InferredColumn {
+  name: string;
+  label: string;
+  dataType: DataType;
+  sampleValues: string[];
+}
+
+export interface SchemaInferenceResult {
+  columns: InferredColumn[];
+  sampleRows: string[][];
+  totalRows: number;
+}
+
 export type AppStep = 'template' | 'import' | 'review' | 'results';
 
 export function createEmptyColumn(): Column {

@@ -1,5 +1,11 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { DataPreview, ModelStatus, SafetyReport, Template } from './types';
+import type {
+  DataPreview,
+  ModelStatus,
+  SafetyReport,
+  SchemaInferenceResult,
+  Template,
+} from './types';
 
 // テンプレート
 export async function listTemplates(): Promise<Template[]> {
@@ -41,6 +47,10 @@ export async function listSheets(path: string): Promise<string[]> {
 
 export async function readFilePreviewSheet(path: string, sheet: string): Promise<DataPreview> {
   return invoke('read_file_preview_sheet', { path, sheet });
+}
+
+export async function inferSchemaFromFile(path: string): Promise<SchemaInferenceResult> {
+  return invoke('infer_schema_from_file', { path });
 }
 
 export async function exportResult(
