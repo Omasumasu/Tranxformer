@@ -37,6 +37,11 @@ pub fn run() {
             commands::llm::load_model,
             commands::llm::get_model_status,
             commands::llm::generate_transform_code,
+            commands::join::join_preview,
+            commands::join::join_and_read_full,
+            commands::join::list_input_templates,
+            commands::join::save_input_template,
+            commands::join::delete_input_template,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tranxformer");

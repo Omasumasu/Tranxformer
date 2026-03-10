@@ -1,5 +1,5 @@
 use crate::error::AppError;
-use crate::models::Template;
+use crate::models::{InputTemplate, Template};
 use std::path::{Path, PathBuf};
 
 /// テンプレートの保存先ディレクトリを取得する
@@ -71,6 +71,65 @@ pub fn delete_template(app_data_dir: &Path, id: &str) -> Result<(), AppError> {
 pub fn export_template(template: &Template, export_path: &Path) -> Result<(), AppError> {
     let content = serde_json::to_string_pretty(template)?;
     std::fs::write(export_path, content)?;
+    Ok(())
+}
+
+// ── InputTemplate CRUD ──
+
+/// インプットテンプレートの保存先ディレクトリを取得する
+pub fn input_templates_dir(app_data_dir: &Path) -> PathBuf {
+    app_data_dir.join("input_templates")
+}
+
+/// インプットテンプレートファイルのパスを取得する
+fn input_template_path(app_data_dir: &Path, id: &str) -> PathBuf {
+    input_templates_dir(app_data_dir).join(format!("{id}.json"))
+}
+
+/// インプットテンプレート一覧を読み込む
+pub fn list_input_templates(app_data_dir: &Path) -> Result<Vec<InputTemplate>, AppError> {
+    let dir = input_templates_dir(app_data_dir);
+    if !dir.exists() {
+        return Ok(Vec::new());
+    }
+
+    let mut templates = Vec::new();
+    for entry in std::fs::read_dir(&dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().is_some_and(|e| e == "json") {
+            let content = std::fs::read_to_string(&path)?;
+            let template: InputTemplate = serde_json::from_str(&content)?;
+            templates.push(template);
+        }
+    }
+
+    templates.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
+    Ok(templates)
+}
+
+/// インプットテンプレートを保存する
+pub fn save_input_template(
+    app_data_dir: &Path,
+    template: &InputTemplate,
+) -> Result<(), AppError> {
+    let dir = input_templates_dir(app_data_dir);
+    if !dir.exists() {
+        std::fs::create_dir_all(&dir)?;
+    }
+    let path = input_template_path(app_data_dir, &template.id);
+    let content = serde_json::to_string_pretty(template)?;
+    std::fs::write(&path, content)?;
+    Ok(())
+}
+
+/// インプットテンプレートを削除する
+pub fn delete_input_template(app_data_dir: &Path, id: &str) -> Result<(), AppError> {
+    let path = input_template_path(app_data_dir, id);
+    if !path.exists() {
+        return Err(AppError::TemplateNotFound(id.to_string()));
+    }
+    std::fs::remove_file(&path)?;
     Ok(())
 }
 
