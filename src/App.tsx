@@ -31,6 +31,7 @@ export function App() {
   const [showNewTemplateDialog, setShowNewTemplateDialog] = useState(false);
   const [inferredColumns, setInferredColumns] = useState<InferredColumn[] | null>(null);
   const [inferring, setInferring] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleNewTemplate = () => {
     setShowNewTemplateDialog(true);
@@ -106,10 +107,14 @@ export function App() {
   };
 
   const handleSaveTemplate = async (t: Template) => {
-    await saveTemplate(t);
-    setEditingTemplate(null);
-    setSelectedTemplate(t);
-    setStep('import');
+    try {
+      await saveTemplate(t);
+      setEditingTemplate(null);
+      setSelectedTemplate(t);
+      setStep('import');
+    } catch (e) {
+      setSaveError(String(e));
+    }
   };
 
   const handleDeleteTemplate = async (id: string) => {
@@ -277,14 +282,22 @@ export function App() {
 
     if (editingTemplate) {
       return (
-        <TemplateEditor
-          template={editingTemplate}
-          onSave={handleSaveTemplate}
-          onCancel={() => {
-            setEditingTemplate(null);
-            setStep(selectedTemplate ? 'import' : null);
-          }}
-        />
+        <div className="space-y-4">
+          {saveError && (
+            <div className="mx-auto max-w-2xl rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              テンプレートの保存に失敗しました: {saveError}
+            </div>
+          )}
+          <TemplateEditor
+            template={editingTemplate}
+            onSave={handleSaveTemplate}
+            onCancel={() => {
+              setEditingTemplate(null);
+              setSaveError(null);
+              setStep(selectedTemplate ? 'import' : null);
+            }}
+          />
+        </div>
       );
     }
 

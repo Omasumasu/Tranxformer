@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Template {
     pub id: String,
     pub name: String,
@@ -11,6 +12,7 @@ pub struct Template {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ColumnDef {
     pub name: String,
     pub label: String,
@@ -31,6 +33,7 @@ pub enum ColumnType {
 pub type Record = serde_json::Map<String, serde_json::Value>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DataPreview {
     pub headers: Vec<String>,
     pub rows: Vec<Record>,
@@ -38,6 +41,7 @@ pub struct DataPreview {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TransformResult {
     pub code: String,
     pub output: Vec<Record>,
@@ -46,12 +50,14 @@ pub struct TransformResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SafetyReport {
     pub is_safe: bool,
     pub violations: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct InferredColumn {
     pub name: String,
     pub label: String,
@@ -60,6 +66,7 @@ pub struct InferredColumn {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SchemaInferenceResult {
     pub columns: Vec<InferredColumn>,
     pub sample_rows: Vec<Vec<String>>,
