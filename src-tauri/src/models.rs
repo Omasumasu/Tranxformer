@@ -72,3 +72,44 @@ pub struct SchemaInferenceResult {
     pub sample_rows: Vec<Vec<String>>,
     pub total_rows: usize,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InputTemplate {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub files: Vec<FileSlot>,
+    pub join_type: JoinType,
+    pub join_expression: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileSlot {
+    pub role: FileRole,
+    pub label: String,
+    pub expected_headers: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum JoinType {
+    Left,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum FileRole {
+    Base,
+    Join,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JoinPreview {
+    pub headers: Vec<String>,
+    pub rows: Vec<Record>,
+    pub base_row_count: usize,
+    pub joined_row_count: usize,
+}
