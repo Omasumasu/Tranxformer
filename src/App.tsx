@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { ModelSettings } from './components/settings/ModelSettings';
+import { SchemaPreview } from './components/template/SchemaPreview';
 import { TemplateEditor } from './components/template/TemplateEditor';
 import { CodePreview } from './components/transform/CodePreview';
 import { DataImport } from './components/transform/DataImport';
@@ -11,7 +12,7 @@ import { MappingView } from './components/transform/MappingView';
 import { ResultView } from './components/transform/ResultView';
 import { useFilePreview, useLlm, useTemplates, useTransform } from './hooks/useTauri';
 import * as commands from './lib/tauri-commands';
-import type { AppStep, Template } from './lib/types';
+import type { AppStep, DataType, InferredColumn, Template } from './lib/types';
 import { createEmptyTemplate } from './lib/types';
 
 export function App() {
@@ -27,10 +28,66 @@ export function App() {
   const [transformResult, setTransformResult] = useState<Record<string, unknown>[]>([]);
   const [showSettings, setShowSettings] = useState(false);
   const [codeGenError, setCodeGenError] = useState<string | null>(null);
+  const [showNewTemplateDialog, setShowNewTemplateDialog] = useState(false);
+  const [inferredColumns, setInferredColumns] = useState<InferredColumn[] | null>(null);
+  const [inferring, setInferring] = useState(false);
 
   const handleNewTemplate = () => {
+    setShowNewTemplateDialog(true);
+  };
+
+  const handleCreateFromScratch = () => {
+    setShowNewTemplateDialog(false);
     setEditingTemplate(createEmptyTemplate());
     setStep('template');
+  };
+
+  const handleCreateFromCsv = async () => {
+    const file = await open({
+      multiple: false,
+      filters: [{ name: 'データファイル', extensions: ['csv', 'tsv', 'txt', 'xlsx', 'xls'] }],
+    });
+    if (!file) return;
+
+    setShowNewTemplateDialog(false);
+    setInferring(true);
+    try {
+      const result = await commands.inferSchemaFromFile(file);
+      setInferredColumns(result.columns.map((c) => ({ ...c })));
+    } catch {
+      setEditingTemplate(createEmptyTemplate());
+      setStep('template');
+    } finally {
+      setInferring(false);
+    }
+  };
+
+  const handleInferredTypeChange = (index: number, dataType: DataType) => {
+    if (!inferredColumns) return;
+    const next = [...inferredColumns];
+    const col = next[index];
+    if (!col) return;
+    next[index] = { ...col, dataType };
+    setInferredColumns(next);
+  };
+
+  const handleConfirmSchema = () => {
+    if (!inferredColumns) return;
+    const template = createEmptyTemplate();
+    template.columns = inferredColumns.map((col) => ({
+      name: col.name,
+      label: col.label,
+      dataType: col.dataType,
+      required: false,
+      description: '',
+    }));
+    setInferredColumns(null);
+    setEditingTemplate(template);
+    setStep('template');
+  };
+
+  const handleCancelSchema = () => {
+    setInferredColumns(null);
   };
 
   const handleSelectTemplate = (t: Template) => {
@@ -199,6 +256,25 @@ export function App() {
       );
     }
 
+    if (inferring) {
+      return (
+        <div className="flex h-full flex-col items-center justify-center gap-4 text-muted-foreground">
+          <p className="text-lg">スキーマを推論中...</p>
+        </div>
+      );
+    }
+
+    if (inferredColumns) {
+      return (
+        <SchemaPreview
+          columns={inferredColumns}
+          onConfirm={handleConfirmSchema}
+          onCancel={handleCancelSchema}
+          onTypeChange={handleInferredTypeChange}
+        />
+      );
+    }
+
     if (editingTemplate) {
       return (
         <TemplateEditor
@@ -269,22 +345,56 @@ export function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
-      <Sidebar
-        templates={templates}
-        selectedTemplateId={selectedTemplate?.id ?? null}
-        onNewTemplate={handleNewTemplate}
-        onSelectTemplate={handleSelectTemplate}
-        onDeleteTemplate={handleDeleteTemplate}
-        onEditTemplate={handleEditTemplate}
-        onExportTemplate={handleExportTemplate}
-        onImportTemplate={handleImportTemplate}
-        onSettings={() => setShowSettings(true)}
-      />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header currentStep={step} />
-        <main className="flex-1 overflow-auto p-6">{renderMainContent()}</main>
+    <>
+      <div className="flex h-screen w-screen overflow-hidden">
+        <Sidebar
+          templates={templates}
+          selectedTemplateId={selectedTemplate?.id ?? null}
+          onNewTemplate={handleNewTemplate}
+          onSelectTemplate={handleSelectTemplate}
+          onDeleteTemplate={handleDeleteTemplate}
+          onEditTemplate={handleEditTemplate}
+          onExportTemplate={handleExportTemplate}
+          onImportTemplate={handleImportTemplate}
+          onSettings={() => setShowSettings(true)}
+        />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header currentStep={step} />
+          <main className="flex-1 overflow-auto p-6">{renderMainContent()}</main>
+        </div>
       </div>
-    </div>
+      {showNewTemplateDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-80 rounded-lg bg-background p-6 shadow-lg space-y-4">
+            <h3 className="text-lg font-semibold">新規テンプレート</h3>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={handleCreateFromScratch}
+                className="w-full rounded-md border px-4 py-3 text-left text-sm hover:bg-muted"
+              >
+                <div className="font-medium">空から作成</div>
+                <div className="text-xs text-muted-foreground">カラムを手動で定義</div>
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateFromCsv}
+                className="w-full rounded-md border px-4 py-3 text-left text-sm hover:bg-muted"
+              >
+                <div className="font-medium">CSVからインポート</div>
+                <div className="text-xs text-muted-foreground">データから型を自動推論</div>
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowNewTemplateDialog(false)}
+              className="w-full rounded-md border px-4 py-2 text-sm hover:bg-muted"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
